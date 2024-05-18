@@ -61,6 +61,7 @@ ALL_FIELD_NAMES = {"timestamp"} | MEASUREMENT_NAMES
 
 class CsvRow(NamedTuple):
     timestamp: datetime.datetime
+    """blubb"""
     a_total_act_energy: float
     a_fund_act_energy: float
     a_total_act_ret_energy: float
@@ -114,10 +115,10 @@ class CsvRow(NamedTuple):
     n_avg_current: float
 
     @classmethod
-    def from_dict(cls, row: dict[str | Any, str | Any]):
+    def from_dict(cls, row: dict[str | Any, str | Any]) -> "CsvRow":
         def value(key: str) -> float:
             return float(row[key])
 
         values: dict[str, Any] = {key: value(key) for key in MEASUREMENT_NAMES}
-        values["timestamp"] = datetime.datetime.fromtimestamp(int(row["timestamp"]))
-        return cls(**values)
+        timestamp = datetime.datetime.fromtimestamp(int(row["timestamp"]))
+        return cls(timestamp=timestamp, **values)
