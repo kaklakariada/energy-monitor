@@ -1,0 +1,26 @@
+version: '3.3'
+#name: 'energy-monitor'
+
+services:
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - 8086:8086
+    volumes:
+      - influxdb-data:/var/lib/influxdb2:rw
+      - influxdb-config:/etc/influxdb2:rw
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_ORG: k40
+      DOCKER_INFLUXDB_INIT_BUCKET: shelly
+      DOCKER_INFLUXDB_INIT_RETENTION: 50w
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-secret-auth-token
+
+volumes:
+  influxdb-data:
+    driver: local
+  influxdb-config:
+    driver: local
