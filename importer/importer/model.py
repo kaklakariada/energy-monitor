@@ -1,6 +1,6 @@
 import datetime
+from pathlib import Path
 from typing import Any, NamedTuple, Optional
-
 
 MEASUREMENT_NAMES = {
     "a_total_act_energy",
@@ -124,7 +124,8 @@ class RawCsvRow(NamedTuple):
 
 
 class PhaseData(NamedTuple):
-    phase: str
+    phase_name: str
+    """Phase name, a, b or c"""
     total_act_energy: float
     fund_act_energy: float
     total_act_ret_energy: float
@@ -174,6 +175,17 @@ class CsvRow(NamedTuple):
             n_min_current=row.n_min_current,
             n_avg_current=row.n_avg_current,
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "timestamp": self.timestamp.timestamp(),
+            "phase_a": self.phase_a._asdict(),
+            "phase_b": self.phase_b._asdict(),
+            "phase_c": self.phase_c._asdict(),
+            "n_max_current": self.n_max_current,
+            "n_min_current": self.n_min_current,
+            "n_avg_current": self.n_avg_current,
+        }
 
 
 class DeviceInfo(NamedTuple):

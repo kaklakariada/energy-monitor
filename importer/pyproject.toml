@@ -5,11 +5,11 @@ description = "Import data from Shelly 3EM to Influxdb"
 authors = ["kaklakariada <kaklakariada@users.noreply.github.com>"]
 license = "GPL"
 readme = "../README.md"
-packages = [{include = "importer"}]
+packages = [{ include = "importer" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-influxdb = "^5.3.2"
+influxdb-client = "^1.43.0"
 requests = "^2.31.0"
 
 [tool.poetry.group.dev.dependencies]
@@ -27,6 +27,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 import = "importer.main:main"
+download = "importer.download:main"
 
 [tool.black]
 line-length = 120
@@ -39,6 +40,4 @@ profile = "black"
 #force_grid_wrap = 2
 
 [tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
-]
+addopts = ["--import-mode=importlib"]

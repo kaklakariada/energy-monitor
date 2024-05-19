@@ -2,13 +2,13 @@ import datetime
 import time
 import pytest
 from importer.shelly import Shelly
-from importer.config import shelly_devices
+from importer.config import config
 
 
 @pytest.fixture
 def shelly():
-    shelly = shelly_devices[0]
-    return Shelly(shelly["ip"])
+    ip = config.device_ips[0]
+    return Shelly(ip)
 
 
 def test_system_status(shelly: Shelly):

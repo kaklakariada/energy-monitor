@@ -2,6 +2,7 @@ import csv
 import datetime
 import json
 import logging
+from pathlib import Path
 from typing import Any, Generator, NamedTuple, Optional
 from importer.model import (
     ALL_FIELD_NAMES,
@@ -17,6 +18,8 @@ from importer.model import (
 )
 import requests
 
+logger = logging.getLogger("shelly")
+
 
 class RpcError(Exception):
     pass
@@ -26,14 +29,22 @@ class Shelly:
     ip: str
     device_info: DeviceInfo
 
-    def __init__(self, ip):
+    def __init__(self, ip) -> None:
         self.ip = ip
         self.device_info = self._get_device_info()
-        logging.info(f"Connected to '{self.device_info.name}' at {self.ip}")
+        logger.info(f"Connected to '{self.device_info.name}' at {self.ip}")
 
     def _get_device_info(self) -> dict[str, Any]:
         data = self._rpc_call("Shelly.GetDeviceInfo", {"ident": True})
         return DeviceInfo.from_dict(data)
+
+    @property
+    def device_name(self):
+        return self.device_info.name
+
+    @property
+    def device_id(self):
+        return self.device_info.id
 
     @property
     def rpc_url(self):
@@ -61,7 +72,7 @@ class Shelly:
         return EnergyMeterRecords.from_dict(data)
 
     def get_data(
-        self, timestamp: datetime.datetime, end_timestamp: datetime.datetime = None, id: int = 0
+        self, timestamp: datetime.datetime, end_timestamp: Optional[datetime.datetime] = None, id: int = 0
     ) -> Generator[CsvRow, None, None]:
         """Get energy meter data from Shelly.
 
@@ -74,21 +85,47 @@ class Shelly:
         Returns:
             Generator[str, None, None]: Generator of CSV rows.
         """
-        url = f"http://{self.ip}/emdata/{id}/data.csv?add_keys=true&ts={timestamp.timestamp()}"
-        if end_timestamp:
-            url += f"&end_ts={end_timestamp.timestamp()}"
-        response = requests.get(url, stream=True, timeout=3)
-        response.raise_for_status()
+        response = self._get_data_response(timestamp, end_timestamp, id)
         reader = csv.DictReader(response.iter_lines(decode_unicode=True))
         assert set(reader.fieldnames) == ALL_FIELD_NAMES
         raw_rows = (RawCsvRow.from_dict(row) for row in reader)
         rows = (CsvRow.from_raw(row) for row in raw_rows)
         return rows
 
+    def download_csv_data(
+        self,
+        target_file: Path,
+        timestamp: Optional[datetime.datetime],
+        end_timestamp: Optional[datetime.datetime] = None,
+        id: int = 0,
+    ) -> None:
+        response = self._get_data_response(timestamp=timestamp, end_timestamp=end_timestamp, id=id)
+        logger.info(f"Writing CSV data to {target_file}...")
+        _create_dir(target_file.parent)
+        size = 0
+        with open(target_file, "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:  # filter out keep-alive new chunks
+                    byte_count = file.write(chunk)
+                    size += byte_count
+        logger.info(f"Wrote {size} bytes of CSV data to {target_file}")
+
+    def _get_data_response(
+        self, timestamp: Optional[datetime.datetime], end_timestamp: Optional[datetime.datetime], id: int
+    ):
+        url = f"http://{self.ip}/emdata/{id}/data.csv?add_keys=true"
+        if timestamp:
+            url += f"&ts={timestamp.timestamp()}"
+        if end_timestamp:
+            url += f"&end_ts={end_timestamp.timestamp()}"
+        response = requests.get(url, stream=True, timeout=3)
+        response.raise_for_status()
+        return response
+
     def _rpc_call(self, method: str, params: dict[str, str]):
         data = {"id": 1, "method": method, "params": params}
         data = json.dumps(data)
-        logging.debug(f"Sending POST with data {data} to {self.rpc_url}")
+        logger.debug(f"Sending POST with data {data} to {self.rpc_url}")
         response = requests.post(self.rpc_url, data=data, headers={"Content-Type": "application/json"}, timeout=3)
         response.raise_for_status()
         response = response.json()
@@ -98,3 +135,8 @@ class Shelly:
 
     def __str__(self):
         return f"Shelly {self.device_info.name} at {self.ip}"
+
+
+def _create_dir(dir: Path) -> None:
+    if not dir.exists():
+        dir.mkdir(parents=True)
