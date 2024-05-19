@@ -3,7 +3,8 @@ import datetime
 import json
 import logging
 from pathlib import Path
-from typing import Any, Generator, NamedTuple, Optional
+import random
+from typing import Any, Callable, Generator, NamedTuple, Optional
 from importer.model import (
     ALL_FIELD_NAMES,
     CsvRow,
@@ -12,6 +13,7 @@ from importer.model import (
     EnergyMeterRecords,
     EnergyMeterStatus,
     EnergyMeterStatusRaw,
+    NotifyStatusEvent,
     RawCsvRow,
     ShellyStatus,
     SystemStatus,
@@ -132,6 +134,21 @@ class Shelly:
         if "error" in response:
             raise RpcError(f"Error in response: {response['error']}")
         return response["result"]
+
+    def subscribe(self, callback: Callable[[NotifyStatusEvent], None]) -> None:
+        from websockets.sync.client import connect
+
+        ws_url = f"ws://{self.ip}/rpc"
+        client_id = f"client-{random.randint(0, 1000000)}"
+        logger.info(f"Connecting to {ws_url} as client {client_id}...")
+        with connect(ws_url) as websocket:
+            websocket.send('{"id": 1, "src": "' + client_id + '"}')
+            while True:
+                response = websocket.recv()
+                data = json.loads(response)
+                print(data)
+                status = NotifyStatusEvent.from_dict(self.device_info, data)
+                callback(status)
 
     def __str__(self):
         return f"Shelly {self.device_info.name} at {self.ip}"

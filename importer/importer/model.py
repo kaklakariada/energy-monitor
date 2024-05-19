@@ -434,3 +434,15 @@ class ShellyStatus(NamedTuple):
             em=EnergyMeterStatus.from_raw(EnergyMeterStatusRaw.from_dict(data["em:0"])),
             emdata=EnergyMeterData.from_dict(device_info, data["emdata:0"]),
         )
+
+
+class NotifyStatusEvent(NamedTuple):
+    device_info: DeviceInfo
+    src: str
+    status: EnergyMeterStatus
+
+    @staticmethod
+    def from_dict(device_info: DeviceInfo, data: dict[str, Any]) -> "NotifyStatusEvent":
+        raw = EnergyMeterStatusRaw.from_dict(data["params"])
+        status = EnergyMeterStatus.from_raw(raw)
+        return NotifyStatusEvent(device_info=device_info, src=data["src"], status=status)
