@@ -1,3 +1,4 @@
+import datetime
 import time
 import pytest
 from importer.shelly import Shelly
@@ -54,3 +55,17 @@ def test_get_emdata_records(shelly: Shelly):
     assert data.data_blocks[0].timestamp.timestamp() > 0
     assert data.data_blocks[0].period == 60
     assert data.data_blocks[0].records > 1
+
+
+def test_get_csv_data(shelly: Shelly):
+    now = datetime.datetime.now()
+    one_hour_ago = now - datetime.timedelta(hours=1)
+    data = shelly.get_data(timestamp=one_hour_ago)
+    data = list(data)
+    assert len(data) == 60
+    first_row = data[0]
+    last_row = data[-1]
+    one_minute = datetime.timedelta(seconds=60)
+    assert abs(first_row.timestamp - one_hour_ago) < one_minute
+    assert abs(last_row.timestamp - now) < (2 * one_minute)
+    assert len(first_row.phases) == 3

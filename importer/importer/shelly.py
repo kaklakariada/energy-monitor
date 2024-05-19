@@ -1,7 +1,9 @@
+import csv
 import datetime
 import json
 import logging
-from typing import Any, NamedTuple, Optional
+from typing import Any, Generator, NamedTuple, Optional
+from importer.model import ALL_FIELD_NAMES, CsvRow, RawCsvRow
 import requests
 
 
@@ -294,6 +296,31 @@ class Shelly:
     def get_emdata_records(self, timestamp: int = 0) -> EnergyMeterRecords:
         data = self._rpc_call("EMData.GetRecords", {"id": 0, "ts": timestamp})
         return EnergyMeterRecords.from_dict(data)
+
+    def get_data(
+        self, timestamp: datetime.datetime, end_timestamp: datetime.datetime = None, id: int = 0
+    ) -> Generator[CsvRow, None, None]:
+        """Get energy meter data from Shelly.
+
+        Args:
+            timestamp (datetime.datetime): Timestamp of the first record.
+                Any record with data having timestamp between ts and end_ts will be retrieved.
+            end_timestamp (datetime.datetime, optional): Timestamp of the last record to get (if available).
+                If response is too big, it will be chunked. Default is to get all available records without limit.
+            id (int, optional): Id of the EMData component instance. Defaults to 0.
+        Returns:
+            Generator[str, None, None]: Generator of CSV rows.
+        """
+        url = f"http://{self.ip}/emdata/{id}/data.csv?add_keys=true&ts={timestamp.timestamp()}"
+        if end_timestamp:
+            url += f"&end_ts={end_timestamp.timestamp()}"
+        response = requests.get(url, stream=True, timeout=3)
+        response.raise_for_status()
+        reader = csv.DictReader(response.iter_lines(decode_unicode=True))
+        assert set(reader.fieldnames) == ALL_FIELD_NAMES
+        raw_rows = (RawCsvRow.from_dict(row) for row in reader)
+        rows = (CsvRow.from_raw(row) for row in raw_rows)
+        return rows
 
     def _rpc_call(self, method: str, params: dict[str, str]):
         data = {"id": 1, "method": method, "params": params}

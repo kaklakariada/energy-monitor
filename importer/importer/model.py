@@ -59,9 +59,8 @@ MEASUREMENT_NAMES = {
 ALL_FIELD_NAMES = {"timestamp"} | MEASUREMENT_NAMES
 
 
-class CsvRow(NamedTuple):
-    timestamp: datetime.datetime
-    """blubb"""
+class RawCsvRow(NamedTuple):
+    timestamp: int
     a_total_act_energy: float
     a_fund_act_energy: float
     a_total_act_ret_energy: float
@@ -115,10 +114,63 @@ class CsvRow(NamedTuple):
     n_avg_current: float
 
     @classmethod
-    def from_dict(cls, row: dict[str | Any, str | Any]) -> "CsvRow":
+    def from_dict(cls, row: dict[str | Any, str | Any]) -> "RawCsvRow":
         def value(key: str) -> float:
             return float(row[key])
 
         values: dict[str, Any] = {key: value(key) for key in MEASUREMENT_NAMES}
-        timestamp = datetime.datetime.fromtimestamp(int(row["timestamp"]))
+        timestamp = int(row["timestamp"])
         return cls(timestamp=timestamp, **values)
+
+
+class PhaseData(NamedTuple):
+    phase: str
+    total_act_energy: float
+    fund_act_energy: float
+    total_act_ret_energy: float
+    fund_act_ret_energy: float
+    lag_react_energy: float
+    lead_react_energy: float
+    max_act_power: float
+    min_act_power: float
+    max_aprt_power: float
+    min_aprt_power: float
+    max_voltage: float
+    min_voltage: float
+    avg_voltage: float
+    max_current: float
+    min_current: float
+    avg_current: float
+
+    @classmethod
+    def from_dict(cls, phase: str, row: dict[str, float]) -> "PhaseData":
+        return cls(phase, **row)
+
+
+class CsvRow(NamedTuple):
+    timestamp: datetime.datetime
+    phase_a: PhaseData
+    phase_b: PhaseData
+    phase_c: PhaseData
+    phases: list[PhaseData]
+    n_max_current: float
+    n_min_current: float
+    n_avg_current: float
+
+    @classmethod
+    def from_raw(cls, row: RawCsvRow) -> "CsvRow":
+        phases: list[PhaseData] = []
+        for phase in ["a", "b", "c"]:
+            phase_data = {key[2:]: getattr(row, key) for key in MEASUREMENT_NAMES if key.startswith(f"{phase}_")}
+            phase_data = PhaseData.from_dict(phase, phase_data)
+            phases.append(phase_data)
+        return cls(
+            timestamp=datetime.datetime.fromtimestamp(row.timestamp),
+            phase_a=phases[0],
+            phase_b=phases[1],
+            phase_c=phases[2],
+            phases=phases,
+            n_max_current=row.n_max_current,
+            n_min_current=row.n_min_current,
+            n_avg_current=row.n_avg_current,
+        )
