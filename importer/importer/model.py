@@ -212,7 +212,7 @@ class DeviceInfo(NamedTuple):
 
 class EnergyMeterPhase(NamedTuple):
     name: str
-    """Phase name, A, B or C"""
+    """Phase name, a, b or c"""
     current: float
     """Current measurement value, [A]"""
     voltage: float
@@ -437,12 +437,17 @@ class ShellyStatus(NamedTuple):
 
 
 class NotifyStatusEvent(NamedTuple):
+    timestamp: datetime.datetime
     device_info: DeviceInfo
     src: str
     status: EnergyMeterStatus
 
     @staticmethod
     def from_dict(device_info: DeviceInfo, data: dict[str, Any]) -> "NotifyStatusEvent":
-        raw = EnergyMeterStatusRaw.from_dict(data["params"])
+        params = data["params"]
+        timestamp = datetime.datetime.fromtimestamp(float(params["ts"]))
+        em_data = params["em:0"]
+        em_data["user_calibrated_phase"] = []
+        raw = EnergyMeterStatusRaw.from_dict(em_data)
         status = EnergyMeterStatus.from_raw(raw)
-        return NotifyStatusEvent(device_info=device_info, src=data["src"], status=status)
+        return NotifyStatusEvent(timestamp=timestamp, device_info=device_info, src=data["src"], status=status)

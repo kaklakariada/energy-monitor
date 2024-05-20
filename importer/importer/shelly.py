@@ -4,6 +4,8 @@ import json
 import logging
 from pathlib import Path
 import random
+import threading
+import traceback
 from typing import Any, Callable, Generator, NamedTuple, Optional
 from importer.model import (
     ALL_FIELD_NAMES,
@@ -135,23 +137,62 @@ class Shelly:
             raise RpcError(f"Error in response: {response['error']}")
         return response["result"]
 
-    def subscribe(self, callback: Callable[[NotifyStatusEvent], None]) -> None:
-        from websockets.sync.client import connect
-
-        ws_url = f"ws://{self.ip}/rpc"
-        client_id = f"client-{random.randint(0, 1000000)}"
-        logger.info(f"Connecting to {ws_url} as client {client_id}...")
-        with connect(ws_url) as websocket:
-            websocket.send('{"id": 1, "src": "' + client_id + '"}')
-            while True:
-                response = websocket.recv()
-                data = json.loads(response)
-                print(data)
-                status = NotifyStatusEvent.from_dict(self.device_info, data)
-                callback(status)
+    def subscribe(self, callback: Callable[[NotifyStatusEvent], None]) -> "NotificationSubscription":
+        subscription = NotificationSubscription(self, callback)
+        subscription.subscribe()
+        return subscription
 
     def __str__(self):
         return f"Shelly {self.device_info.name} at {self.ip}"
+
+
+class NotificationSubscription:
+    shelly: Shelly
+    callback: Callable[[NotifyStatusEvent], None]
+    client_id: str
+    running: bool
+
+    def __init__(self, shelly: Shelly, callback: Callable[[NotifyStatusEvent], None]) -> None:
+        self.shelly = shelly
+        self.callback = callback
+        self.client_id = f"client-{random.randint(0, 1000000)}"
+        self.logger = logging.getLogger(f"ws-{self.client_id}")
+
+    def subscribe(self):
+        callback = self._handle_exception(self._subscribe_thread)
+        thread = threading.Thread(target=callback, name=f"subscription-{self.client_id}")
+        self.running = True
+        thread.start()
+
+    def _handle_exception(self, func: Callable[[], None]) -> Callable[[], None]:
+        def callback():
+            try:
+                func()
+            except Exception as e:
+                self.logger.error(f"Error processing subscription: {e}")
+                traceback.print_exception(e)
+
+        return callback
+
+    def _subscribe_thread(self):
+        from websockets.sync.client import connect
+
+        ws_url = f"ws://{self.shelly.ip}/rpc"
+        self.logger.info(f"Connecting to {ws_url} as client {self.client_id}...")
+        with connect(ws_url) as websocket:
+            websocket.send('{"id": 1, "src": "' + self.client_id + '"}')
+            while self.running:
+                response = websocket.recv()
+                data = json.loads(response)
+                try:
+                    status = NotifyStatusEvent.from_dict(self.shelly.device_info, data)
+                    self.callback(status)
+                except Exception as e:
+                    self.logger.error(f"Error processing data {data}: {e}")
+                    traceback.print_exception(e)
+
+    def stop(self):
+        self.running = False
 
 
 def _create_dir(dir: Path) -> None:

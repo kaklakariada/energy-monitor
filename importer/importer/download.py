@@ -20,7 +20,9 @@ def subscribe():
     def callback(data: NotifyStatusEvent):
         logger.info(f"Received data: {data}")
 
-    shelly.subscribe(callback)
+    subscription = shelly.subscribe(callback)
+    time.sleep(20)
+    subscription.stop()
 
 
 def download_data():
