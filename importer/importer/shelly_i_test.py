@@ -9,10 +9,12 @@ from importer.config import config
 from importer.model import NotifyStatusEvent
 from importer.shelly import Shelly
 
+pytestmark = pytest.mark.shelly
+
 
 @pytest.fixture
 def shelly():
-    ip = config.devices[0].ip
+    ip = config.devices[1].ip
     return Shelly(ip)
 
 
@@ -87,8 +89,8 @@ def test_subscription(shelly: Shelly):
     subscription = shelly.subscribe(callback)
     while not event:
         wait_time = datetime.datetime.now() - start
-        assert wait_time.total_seconds() < 5, f"No event received after {wait_time}"
-        time.sleep(1)
+        assert wait_time.total_seconds() < 10, f"No event received after {wait_time}"
+        time.sleep(0.5)
     subscription.stop()
     delta = datetime.timedelta(seconds=5)
     assert event.timestamp > (start - delta)

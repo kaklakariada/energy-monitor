@@ -41,4 +41,11 @@ profile = "black"
 #force_grid_wrap = 2
 
 [tool.pytest.ini_options]
-addopts = ["--import-mode=importlib"]
+markers = [
+    "shelly: marks tests as requiring a real device (deselect with '-m \"not shelly\"')",
+]
+addopts = [
+    "--import-mode=importlib",
+    "--strict-markers",
+    "--log-cli-level=debug",
+]
