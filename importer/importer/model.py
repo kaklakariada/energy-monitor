@@ -210,7 +210,7 @@ class DeviceInfo(NamedTuple):
 
 
 class EnergyMeterPhase(NamedTuple):
-    name: str
+    phase_name: str
     """Phase name, a, b or c"""
     current: float
     """Current measurement value, [A]"""
@@ -327,7 +327,7 @@ class EnergyMeterStatus(NamedTuple):
         data = raw_data._asdict()
         for phase in {"a", "b", "c"}:
             data[f"phase_{phase}"] = EnergyMeterPhase(
-                name=phase,
+                phase_name=phase,
                 current=data[f"{phase}_current"],
                 voltage=data[f"{phase}_voltage"],
                 act_power=data[f"{phase}_act_power"],

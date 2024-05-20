@@ -4,6 +4,7 @@ import datetime
 import logging
 import re
 import sys
+import time
 import traceback
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
@@ -13,8 +14,8 @@ from typing_extensions import Annotated
 
 from importer.config import config
 from importer.config_model import DeviceConfig
-from importer.db import DbClient
-from importer.model import ALL_FIELD_NAMES, CsvRow, RawCsvRow
+from importer.db import BatchWriter, DbClient
+from importer.model import ALL_FIELD_NAMES, CsvRow, NotifyStatusEvent, RawCsvRow
 from importer.shelly import Shelly
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(threadName)s - %(levelname)s - %(name)s - %(message)s")
@@ -49,7 +50,7 @@ def download(
 def _download_device(
     device: DeviceConfig, target_dir: Path, now: datetime.datetime, start_timestamp: Optional[datetime.datetime]
 ) -> None:
-    shelly = Shelly(device.ip)
+    shelly = Shelly(device)
     target_file = target_dir / device.name / f"{now.isoformat()}.csv"
     logger.info(f"Downloading from {shelly.device_name} to {target_file}...")
     shelly.download_csv_data(timestamp=start_timestamp, end_timestamp=None, target_file=target_file)
@@ -80,7 +81,42 @@ def _get_age(delta: str) -> datetime.timedelta:
 
 
 @app.command()
+def live():
+    """
+    Subscribe to live data and insert it into the database.
+    """
+    db = DbClient(
+        url=config.influxdb.url,
+        token=config.influxdb.token,
+        org=config.influxdb.org,
+        bucket=config.influxdb.bucket,
+    )
+    db.ensure_bucket_exists()
+    writer = db.batch_writer()
+    for device in config.devices:
+        _subscribe_device(device, writer)
+    print("Sleeping....")
+    time.sleep(10000)
+
+
+def _subscribe_device(device: DeviceConfig, writer: BatchWriter) -> None:
+
+    def callback(data: NotifyStatusEvent):
+        logger.debug(
+            f"Received from {device.name}, act. power: {data.status.total_act_power}W, current: {data.status.total_current}A"
+        )
+        writer.insert_status_event(device.name, data)
+
+    shelly = Shelly(device)
+    shelly.subscribe(callback)
+    logger.info(f"Subscribed to {shelly.device_name}")
+
+
+@app.command()
 def import_csv():
+    """
+    Insert local CSV data into database.
+    """
     db = DbClient(
         url=config.influxdb.url,
         token=config.influxdb.token,

@@ -14,8 +14,7 @@ pytestmark = pytest.mark.shelly
 
 @pytest.fixture
 def shelly():
-    ip = config.devices[1].ip
-    return Shelly(ip)
+    return Shelly(config.devices[1])
 
 
 def test_system_status(shelly: Shelly):

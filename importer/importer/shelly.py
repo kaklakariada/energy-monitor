@@ -11,6 +11,7 @@ from typing import Any, Callable, Generator, NamedTuple, Optional
 import requests
 from websockets.sync.client import connect as connect_websocket
 
+from importer.config_model import DeviceConfig
 from importer.model import (
     ALL_FIELD_NAMES,
     CsvRow,
@@ -36,8 +37,8 @@ class Shelly:
     ip: str
     device_info: DeviceInfo
 
-    def __init__(self, ip) -> None:
-        self.ip = ip
+    def __init__(self, config: DeviceConfig) -> None:
+        self.ip = config.ip
         self.device_info = self._get_device_info()
         logger.debug(f"Connected to '{self.device_info.name}' at {self.ip}")
 

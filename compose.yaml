@@ -19,8 +19,18 @@ services:
       DOCKER_INFLUXDB_INIT_RETENTION: 50w
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-secret-auth-token
 
+  grafana:
+    image: grafana/grafana:10.1.10
+    container_name: grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
 volumes:
   influxdb-data:
     driver: local
   influxdb-config:
+    driver: local
+  grafana-storage:
     driver: local
