@@ -40,7 +40,7 @@ class Shelly:
         self.device_info = self._get_device_info()
         logger.info(f"Connected to '{self.device_info.name}' at {self.ip}")
 
-    def _get_device_info(self) -> dict[str, Any]:
+    def _get_device_info(self) -> DeviceInfo:
         data = self._rpc_call("Shelly.GetDeviceInfo", {"ident": True})
         return DeviceInfo.from_dict(data)
 
@@ -93,6 +93,7 @@ class Shelly:
         """
         response = self._get_data_response(timestamp, end_timestamp, id)
         reader = csv.DictReader(response.iter_lines(decode_unicode=True))
+        assert reader.fieldnames is not None
         assert set(reader.fieldnames) == ALL_FIELD_NAMES
         raw_rows = (RawCsvRow.from_dict(row) for row in reader)
         rows = (CsvRow.from_raw(row) for row in raw_rows)
@@ -128,16 +129,15 @@ class Shelly:
         response.raise_for_status()
         return response
 
-    def _rpc_call(self, method: str, params: dict[str, str]):
-        data = {"id": 1, "method": method, "params": params}
-        data = json.dumps(data)
+    def _rpc_call(self, method: str, params: dict[str, Any]):
+        data = json.dumps({"id": 1, "method": method, "params": params})
         logger.debug(f"Sending POST with data {data} to {self.rpc_url}")
         response = requests.post(self.rpc_url, data=data, headers={"Content-Type": "application/json"}, timeout=3)
         response.raise_for_status()
-        response = response.json()
-        if "error" in response:
-            raise RpcError(f"Error in response: {response['error']}")
-        return response["result"]
+        json_data = response.json()
+        if "error" in json_data:
+            raise RpcError(f"Error in response: {json_data['error']}")
+        return json_data["result"]
 
     def subscribe(self, callback: Callable[[NotifyStatusEvent], None]) -> "NotificationSubscription":
         subscription = NotificationSubscription(self, callback)

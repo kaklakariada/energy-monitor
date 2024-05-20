@@ -163,8 +163,7 @@ class CsvRow(NamedTuple):
         phases: list[PhaseData] = []
         for phase in ["a", "b", "c"]:
             phase_data = {key[2:]: getattr(row, key) for key in MEASUREMENT_NAMES if key.startswith(f"{phase}_")}
-            phase_data = PhaseData.from_dict(phase, phase_data)
-            phases.append(phase_data)
+            phases.append(PhaseData.from_dict(phase, phase_data))
         return cls(
             timestamp=datetime.datetime.fromtimestamp(row.timestamp),
             phase_a=phases[0],
@@ -324,8 +323,8 @@ class EnergyMeterStatus(NamedTuple):
     """EM component error conditions. May contain power_meter_failure or phase_sequence. Present in status only if not empty."""
 
     @staticmethod
-    def from_raw(data: EnergyMeterStatusRaw) -> "EnergyMeterStatus":
-        data = data._asdict()
+    def from_raw(raw_data: EnergyMeterStatusRaw) -> "EnergyMeterStatus":
+        data = raw_data._asdict()
         for phase in {"a", "b", "c"}:
             data[f"phase_{phase}"] = EnergyMeterPhase(
                 name=phase,
@@ -401,8 +400,8 @@ class EnergyMeterRecords(NamedTuple):
 class SystemStatus(NamedTuple):
     mac: str
     restart_required: bool
-    time: Optional[str]
-    unixtime: Optional[int]
+    time: str
+    unixtime: int
     uptime: int
     ram_size: int
     ram_free: int
@@ -417,6 +416,8 @@ class SystemStatus(NamedTuple):
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SystemStatus":
+        assert "time" in data
+        assert "unixtime" in data
         return SystemStatus(**data)
 
 

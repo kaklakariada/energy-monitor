@@ -3,9 +3,18 @@ import logging
 import time
 from typing import Generator, Iterable
 
-from influxdb_client import InfluxDBClient, Point, WriteOptions, WritePrecision
-from influxdb_client.client.exceptions import InfluxDBError
-from influxdb_client.client.write_api import SYNCHRONOUS, PointSettings, WriteType
+from influxdb_client import (  # type: ignore
+    InfluxDBClient,
+    Point,
+    WriteOptions,
+    WritePrecision,
+)
+from influxdb_client.client.exceptions import InfluxDBError  # type: ignore
+from influxdb_client.client.write_api import (  # type: ignore
+    SYNCHRONOUS,
+    PointSettings,
+    WriteType,
+)
 
 from importer.model import CsvRow, PhaseData
 
@@ -83,16 +92,18 @@ class DbClient:
             error_callback=callback.error,
             retry_callback=callback.retry,
         ) as write_api:
-            count = 0
+            row_count = 0
+            point_count = 0
             start_time = time.time()
             for row in rows:
+                row_count += 1
                 for point in converter.convert_point(row):
                     assert point is not None
                     result = write_api.write(org=self.org, bucket=self.bucket, record=point)
-                    count += 1
+                    point_count += 1
                     assert result is None
             duration = time.time() - start_time
-            logger.info(f"Wrote {count} points for {len(rows)} rows in {duration:.2f} seconds")
+            logger.info(f"Wrote {point_count} points for {row_count} rows in {duration:.2f} seconds")
 
     def query(self, query):
         query_api = self.client.query_api()

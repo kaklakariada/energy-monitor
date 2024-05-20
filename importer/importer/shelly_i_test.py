@@ -9,7 +9,7 @@ from importer.shelly import Shelly
 
 @pytest.fixture
 def shelly():
-    ip = config.device_ips[0]
+    ip = config.devices[0].ip
     return Shelly(ip)
 
 
@@ -62,8 +62,7 @@ def test_get_emdata_records(shelly: Shelly):
 def test_get_csv_data(shelly: Shelly):
     now = datetime.datetime.now()
     one_hour_ago = now - datetime.timedelta(hours=1)
-    data = shelly.get_data(timestamp=one_hour_ago)
-    data = list(data)
+    data = list(shelly.get_data(timestamp=one_hour_ago))
     assert len(data) == 60
     first_row = data[0]
     last_row = data[-1]

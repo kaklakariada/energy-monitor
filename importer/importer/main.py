@@ -46,6 +46,7 @@ def read_csv_files(device_dir) -> Iterable[CsvRow]:
 def read_csv(file: Path) -> list[CsvRow]:
     with open(file, newline="") as csvfile:
         reader = csv.DictReader(csvfile)
+        assert reader.fieldnames is not None
         assert set(reader.fieldnames) == ALL_FIELD_NAMES
         rows = (CsvRow.from_raw(RawCsvRow.from_dict(row)) for row in reader)
         return list(rows)
