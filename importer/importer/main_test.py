@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
-from importer.main import _get_start_timestamp
+
 import pytest
+
+from importer.main import _get_start_timestamp
 
 NOW = datetime.fromisoformat("2024-05-19T17:43:59")
 
