@@ -3,10 +3,11 @@ import datetime
 import logging
 from pathlib import Path
 from typing import Any, Generator, Iterable, NamedTuple
-from importer.db import DbClient
-from importer.shelly import Shelly
-from importer.model import ALL_FIELD_NAMES, CsvRow, RawCsvRow
+
 from importer.config import config
+from importer.db import DbClient
+from importer.model import ALL_FIELD_NAMES, CsvRow, RawCsvRow
+from importer.shelly import Shelly
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(threadName)s - %(levelname)s - %(name)s - %(message)s")
 logger = logging.getLogger("main")

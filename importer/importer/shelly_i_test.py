@@ -1,8 +1,10 @@
 import datetime
 import time
+
 import pytest
-from importer.shelly import Shelly
+
 from importer.config import config
+from importer.shelly import Shelly
 
 
 @pytest.fixture

@@ -1,11 +1,13 @@
 import itertools
+import logging
 import time
 from typing import Generator, Iterable
-from importer.model import CsvRow, PhaseData
+
 from influxdb_client import InfluxDBClient, Point, WriteOptions, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS, WriteType, PointSettings
 from influxdb_client.client.exceptions import InfluxDBError
-import logging
+from influxdb_client.client.write_api import SYNCHRONOUS, PointSettings, WriteType
+
+from importer.model import CsvRow, PhaseData
 
 logger = logging.getLogger("db")
 

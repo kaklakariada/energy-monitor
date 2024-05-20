@@ -2,11 +2,14 @@ import csv
 import datetime
 import json
 import logging
-from pathlib import Path
 import random
 import threading
 import traceback
+from pathlib import Path
 from typing import Any, Callable, Generator, NamedTuple, Optional
+
+import requests
+
 from importer.model import (
     ALL_FIELD_NAMES,
     CsvRow,
@@ -20,7 +23,6 @@ from importer.model import (
     ShellyStatus,
     SystemStatus,
 )
-import requests
 
 logger = logging.getLogger("shelly")
 
