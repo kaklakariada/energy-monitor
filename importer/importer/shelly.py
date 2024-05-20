@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Generator, NamedTuple, Optional
 
 import requests
+from websockets.sync.client import connect as connect_websocket
 
 from importer.model import (
     ALL_FIELD_NAMES,
@@ -149,52 +150,64 @@ class Shelly:
 
 
 class NotificationSubscription:
-    shelly: Shelly
-    callback: Callable[[NotifyStatusEvent], None]
-    client_id: str
-    running: bool
+    _logger: logging.Logger
+    _shelly: Shelly
+    _callback: Callable[[NotifyStatusEvent], None]
+    _client_id: str
+    _running: bool
+    _thread: threading.Thread
 
     def __init__(self, shelly: Shelly, callback: Callable[[NotifyStatusEvent], None]) -> None:
-        self.shelly = shelly
-        self.callback = callback
-        self.client_id = f"client-{random.randint(0, 1000000)}"
-        self.logger = logging.getLogger(f"ws-{self.client_id}")
+        self._shelly = shelly
+        self._callback = callback
+        self._client_id = f"client-{random.randint(0, 1000000)}"
+        self._logger = logging.getLogger(f"ws-{self._client_id}")
 
     def subscribe(self):
         callback = self._handle_exception(self._subscribe_thread)
-        thread = threading.Thread(target=callback, name=f"subscription-{self.client_id}")
-        self.running = True
-        thread.start()
+        self._thread = threading.Thread(target=callback, name=f"subscription-{self._client_id}")
+        self._running = True
+        self._thread.start()
 
     def _handle_exception(self, func: Callable[[], None]) -> Callable[[], None]:
         def callback():
             try:
                 func()
             except Exception as e:
-                self.logger.error(f"Error processing subscription: {e}")
+                self._logger.error(f"Error processing subscription: {e}")
                 traceback.print_exception(e)
 
         return callback
 
     def _subscribe_thread(self):
-        from websockets.sync.client import connect
-
-        ws_url = f"ws://{self.shelly.ip}/rpc"
-        self.logger.info(f"Connecting to {ws_url} as client {self.client_id}...")
-        with connect(ws_url) as websocket:
-            websocket.send('{"id": 1, "src": "' + self.client_id + '"}')
-            while self.running:
+        ws_url = f"ws://{self._shelly.ip}/rpc"
+        self._logger.info(f"Connecting to {ws_url} as client {self._client_id}...")
+        with connect_websocket(ws_url) as websocket:
+            websocket.send('{"id": 1, "src": "' + self._client_id + '"}')
+            while self._running:
                 response = websocket.recv()
                 data = json.loads(response)
                 try:
-                    status = NotifyStatusEvent.from_dict(self.shelly.device_info, data)
-                    self.callback(status)
+                    method = data["method"]
+                    if method == "NotifyEvent":
+                        self._logger.debug(f"Ignoring event {data}")
+                    elif method == "NotifyStatus":
+                        if "em:0" in data["params"]:
+                            status = NotifyStatusEvent.from_dict(self._shelly.device_info, data)
+                            self._callback(status)
+                        else:
+                            self._logger.debug(f"Ignoring event {data}")
+                    else:
+                        raise RpcError(f"Unexpected event method {method} in data {data}")
                 except Exception as e:
-                    self.logger.error(f"Error processing data {data}: {e}")
+                    self._logger.error(f"Error processing data {data}: {e}")
                     traceback.print_exception(e)
+        self._thread
 
     def stop(self):
-        self.running = False
+        self._running = False
+        self._logger.debug("Waiting for thread to stop...")
+        self._thread.join()
 
 
 def _create_dir(dir: Path) -> None:

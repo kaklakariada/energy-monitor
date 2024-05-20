@@ -1,9 +1,12 @@
 import datetime
+import logging
 import time
+from typing import Optional
 
 import pytest
 
 from importer.config import config
+from importer.model import NotifyStatusEvent
 from importer.shelly import Shelly
 
 
@@ -70,3 +73,23 @@ def test_get_csv_data(shelly: Shelly):
     assert abs(first_row.timestamp - one_hour_ago) < one_minute
     assert abs(last_row.timestamp - now) < (2 * one_minute)
     assert len(first_row.phases) == 3
+
+
+def test_subscription(shelly: Shelly):
+    event: Optional[NotifyStatusEvent] = None
+
+    def callback(data: NotifyStatusEvent):
+        nonlocal event
+        if not event:
+            event = data
+
+    start = datetime.datetime.now()
+    subscription = shelly.subscribe(callback)
+    while not event:
+        wait_time = datetime.datetime.now() - start
+        assert wait_time.total_seconds() < 5, f"No event received after {wait_time}"
+        time.sleep(1)
+    subscription.stop()
+    delta = datetime.timedelta(seconds=5)
+    assert event.timestamp > (start - delta)
+    assert event.timestamp < (datetime.datetime.now() + delta)
