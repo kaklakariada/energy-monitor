@@ -39,7 +39,7 @@ class Shelly:
     def __init__(self, ip) -> None:
         self.ip = ip
         self.device_info = self._get_device_info()
-        logger.info(f"Connected to '{self.device_info.name}' at {self.ip}")
+        logger.debug(f"Connected to '{self.device_info.name}' at {self.ip}")
 
     def _get_device_info(self) -> DeviceInfo:
         data = self._rpc_call("Shelly.GetDeviceInfo", {"ident": True})
@@ -108,7 +108,7 @@ class Shelly:
         id: int = 0,
     ) -> None:
         response = self._get_data_response(timestamp=timestamp, end_timestamp=end_timestamp, id=id)
-        logger.info(f"Writing CSV data to {target_file}...")
+        logger.debug(f"Writing CSV data to {target_file}...")
         _create_dir(target_file.parent)
         size = 0
         with open(target_file, "wb") as file:
@@ -116,7 +116,7 @@ class Shelly:
                 if chunk:  # filter out keep-alive new chunks
                     byte_count = file.write(chunk)
                     size += byte_count
-        logger.info(f"Wrote {size} bytes of CSV data to {target_file}")
+        logger.debug(f"Wrote {size} bytes of CSV data to {target_file}")
 
     def _get_data_response(
         self, timestamp: Optional[datetime.datetime], end_timestamp: Optional[datetime.datetime], id: int
@@ -181,7 +181,7 @@ class NotificationSubscription:
 
     def _subscribe_thread(self):
         ws_url = f"ws://{self._shelly.ip}/rpc"
-        self._logger.info(f"Connecting to {ws_url} as client {self._client_id}...")
+        self._logger.debug(f"Connecting to {ws_url} as client {self._client_id}...")
         with connect_websocket(ws_url) as websocket:
             websocket.send('{"id": 1, "src": "' + self._client_id + '"}')
             while self._running:

@@ -1,10 +1,18 @@
+import argparse
 import csv
 import datetime
 import logging
+import re
+import sys
+import traceback
 from pathlib import Path
-from typing import Any, Generator, Iterable, NamedTuple
+from typing import Any, Callable, Iterable, Optional
+
+import typer
+from typing_extensions import Annotated
 
 from importer.config import config
+from importer.config_model import DeviceConfig
 from importer.db import DbClient
 from importer.model import ALL_FIELD_NAMES, CsvRow, RawCsvRow
 from importer.shelly import Shelly
@@ -13,10 +21,65 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(threadName)s - %
 logger = logging.getLogger("main")
 
 
-def main():
-    import_csv()
+def _configure_logging(
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose log output")] = False
+) -> None:
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Enable verbose mode")
 
 
+app = typer.Typer(no_args_is_help=True, callback=_configure_logging)
+
+
+@app.command()
+def download(
+    age: Annotated[str, typer.Argument(help="Maximum age of the data to download: ALL|1w|1d|1h|missing")]
+) -> None:
+    """
+    Download CSV data to local files.
+    """
+    target_dir = config.data_dir
+    now = datetime.datetime.now()
+    start_timestamp = _get_start_timestamp(age, now)
+    for device in config.devices:
+        _download_device(device, target_dir, now, start_timestamp)
+
+
+def _download_device(
+    device: DeviceConfig, target_dir: Path, now: datetime.datetime, start_timestamp: Optional[datetime.datetime]
+) -> None:
+    shelly = Shelly(device.ip)
+    target_file = target_dir / device.name / f"{now.isoformat()}.csv"
+    logger.info(f"Downloading from {shelly.device_name} to {target_file}...")
+    shelly.download_csv_data(timestamp=start_timestamp, end_timestamp=None, target_file=target_file)
+
+
+def _get_start_timestamp(age: str, now: datetime.datetime) -> Optional[datetime.datetime]:
+    if age.lower() == "all":
+        logger.debug("Downloading all data. This will take a while...")
+        return None
+    delta = _get_age(age)
+    start_timestamp = now - delta
+    logger.debug(f"Downloading data with age {delta}, starting at {start_timestamp}")
+    return start_timestamp
+
+
+def _get_age(delta: str) -> datetime.timedelta:
+    match = re.match(r"(\d+)([wdh])", delta)
+    if match is None:
+        raise ValueError(f"Invalid time delta format: {delta}")
+    amount, unit = match.groups()
+    if unit == "w":
+        return datetime.timedelta(weeks=int(amount))
+    elif unit == "d":
+        return datetime.timedelta(days=int(amount))
+    elif unit == "h":
+        return datetime.timedelta(hours=int(amount))
+    raise ValueError(f"Unsupported time unit '{unit}'")
+
+
+@app.command()
 def import_csv():
     db = DbClient(
         url=config.influxdb.url,
@@ -50,6 +113,10 @@ def read_csv(file: Path) -> list[CsvRow]:
         assert set(reader.fieldnames) == ALL_FIELD_NAMES
         rows = (CsvRow.from_raw(RawCsvRow.from_dict(row)) for row in reader)
         return list(rows)
+
+
+def main():
+    app()
 
 
 if __name__ == "__main__":
