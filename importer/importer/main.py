@@ -66,9 +66,9 @@ def _get_start_timestamp(age: str, now: datetime.datetime) -> Optional[datetime.
 
 
 def _get_age(delta: str) -> datetime.timedelta:
-    match = re.match(r"(\d+)([wdh])", delta)
+    match = re.match(r"(\d+)([wdh])", delta.lower())
     if match is None:
-        raise ValueError(f"Invalid time delta format: {delta}")
+        raise ValueError(f"Invalid time delta format: '{delta}'")
     amount, unit = match.groups()
     if unit == "w":
         return datetime.timedelta(weeks=int(amount))
