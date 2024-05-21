@@ -4,6 +4,7 @@ import datetime
 import logging
 import re
 import sys
+import threading
 import time
 import traceback
 from pathlib import Path
@@ -16,7 +17,7 @@ from importer.config import config
 from importer.config_model import DeviceConfig
 from importer.db import BatchWriter, DbClient
 from importer.model import ALL_FIELD_NAMES, CsvRow, NotifyStatusEvent, RawCsvRow
-from importer.shelly import Shelly
+from importer.shelly import NotificationSubscription, Shelly
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(threadName)s - %(levelname)s - %(name)s - %(message)s")
 logger = logging.getLogger("main")
@@ -93,13 +94,22 @@ def live():
     )
     db.ensure_bucket_exists()
     writer = db.batch_writer()
+    stop_event = threading.Event()
+    subscriptions: list[NotificationSubscription] = []
     for device in config.devices:
-        _subscribe_device(device, writer)
-    print("Sleeping....")
-    time.sleep(10000)
+        subscriptions.append(_subscribe_device(device, writer))
+    try:
+        stop_event.wait()
+    except KeyboardInterrupt:
+        logger.info(f"Stopping {len(subscriptions)} subscriptions...")
+        for subscription in subscriptions:
+            subscription.stop()
+        logger.debug("Closing database connection...")
+        writer.close()
+        db.close()
 
 
-def _subscribe_device(device: DeviceConfig, writer: BatchWriter) -> None:
+def _subscribe_device(device: DeviceConfig, writer: BatchWriter) -> NotificationSubscription:
 
     def callback(data: NotifyStatusEvent):
         logger.debug(
@@ -108,8 +118,9 @@ def _subscribe_device(device: DeviceConfig, writer: BatchWriter) -> None:
         writer.insert_status_event(device.name, data)
 
     shelly = Shelly(device)
-    shelly.subscribe(callback)
+    subscription = shelly.subscribe(callback)
     logger.info(f"Subscribed to {shelly.device_name}")
+    return subscription
 
 
 @app.command()

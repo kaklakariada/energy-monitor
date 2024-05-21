@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import logging
 import time
@@ -23,30 +24,29 @@ class PointConverter:
     def __init__(self, device: str):
         self.device = device
 
+    def point(self, phase_name: str, timestamp: datetime.datetime) -> Point:
+        return (
+            Point("em")
+            .tag("device", self.device)
+            .tag("source", "csv")
+            .tag("phase", phase_name)
+            .time(timestamp, write_precision=WritePrecision.S)
+        )
+
     def convert_csv_row_point(self, row: CsvRow) -> Iterable[Point]:
         phases = (self._create_phase_point(row, phase) for phase in row.phases)
         neutral = [self._create_neutral_point(row)]
         all_phases = itertools.chain(phases, neutral)
         return all_phases
 
-    def convert_event(self, event: NotifyStatusEvent) -> Iterable[Point]:
-        return (self._create_event_phase_point(event, phase) for phase in event.status.phases)
-
-    def _create_event_phase_point(self, row: NotifyStatusEvent, phase: EnergyMeterPhase) -> Point:
-        point = Point("em").tag("phase", phase.phase_name).time(row.timestamp, write_precision=WritePrecision.S)
-        for field in phase._fields:
-            if field != "errors":
-                point.field(field, getattr(phase, field))
-        return point
-
     def _create_phase_point(self, row: CsvRow, phase: PhaseData) -> Point:
-        point = Point("em").tag("phase", phase.phase_name).time(row.timestamp, write_precision=WritePrecision.S)
+        point = self.point(phase.phase_name, row.timestamp)
         for field in phase._fields:
             point.field(field, getattr(phase, field))
         return point
 
     def _create_neutral_point(self, row: CsvRow) -> Point:
-        point = Point("em").tag("phase", "neutral").time(row.timestamp, write_precision=WritePrecision.S)
+        point = self.point("neutral", row.timestamp)
         for field in ["n_max_current", "n_min_current", "n_avg_current"]:
             point.field(field[2:], getattr(row, field))
         return point
@@ -54,16 +54,20 @@ class PointConverter:
 
 class EventPointConverter:
 
+    def point(self, device: str, phase_name: str, timestamp: datetime.datetime) -> Point:
+        return (
+            Point("em")
+            .tag("device", device)
+            .tag("source", "live")
+            .tag("phase", phase_name)
+            .time(timestamp, write_precision=WritePrecision.S)
+        )
+
     def convert_event(self, device: str, event: NotifyStatusEvent) -> Iterable[Point]:
         return (self._create_event_phase_point(device, event, phase) for phase in event.status.phases)
 
     def _create_event_phase_point(self, device: str, row: NotifyStatusEvent, phase: EnergyMeterPhase) -> Point:
-        point = (
-            Point("em")
-            .tag("phase", phase.phase_name)
-            .tag("device", device)
-            .time(row.timestamp, write_precision=WritePrecision.S)
-        )
+        point = self.point(device, phase.phase_name, row.timestamp)
         for field in phase._fields:
             if field != "errors":
                 point.field(field, getattr(phase, field))
@@ -98,7 +102,7 @@ class DbClient:
     def __del__(self):
         logger.info("Closing client...")
         self.client.close()
-        self.client = None
+        del self.client
 
     def ensure_bucket_exists(self):
         buckets_api = self.client.buckets_api()
@@ -133,7 +137,7 @@ class DbClient:
             duration = time.time() - start_time
             logger.debug(f"Wrote {point_count} points for {row_count} rows in {duration:.2f} seconds")
 
-    def batch_writer(self):
+    def batch_writer(self) -> "BatchWriter":
         callback = LoggingBatchCallback()
         write_api = self.client.write_api(
             write_options=WriteOptions(
@@ -150,6 +154,9 @@ class DbClient:
     def query(self, query):
         query_api = self.client.query_api()
         return query_api.query(query)
+
+    def close(self) -> None:
+        self.client.close()
 
 
 class BatchWriter:
@@ -174,3 +181,6 @@ class BatchWriter:
 
     def flush(self):
         self.write_api.flush()
+
+    def close(self):
+        self.write_api.close()

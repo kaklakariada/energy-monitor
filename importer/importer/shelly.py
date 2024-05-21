@@ -207,7 +207,7 @@ class NotificationSubscription:
 
     def stop(self):
         self._running = False
-        self._logger.debug("Waiting for thread to stop...")
+        self._logger.info(f"Waiting for thread {self._client_id} / device {self._shelly.device_name} to stop...")
         self._thread.join()
 
 

@@ -20,6 +20,7 @@ def _type_check(session: Session) -> None:
         # "--warn-unreachable",
         # "--strict-equality",
         # "--strict",
+        "--check-untyped-defs",
         "--explicit-package-bases",
         "--namespace-packages",
         "--show-error-codes",
