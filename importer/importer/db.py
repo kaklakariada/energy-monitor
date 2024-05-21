@@ -3,19 +3,15 @@ import logging
 import time
 from typing import Generator, Iterable
 
-from influxdb_client import (  # type: ignore
+from influxdb_client import (
     InfluxDBClient,
     Point,
     WriteApi,
     WriteOptions,
     WritePrecision,
 )
-from influxdb_client.client.exceptions import InfluxDBError  # type: ignore
-from influxdb_client.client.write_api import (  # type: ignore
-    SYNCHRONOUS,
-    PointSettings,
-    WriteType,
-)
+from influxdb_client.client.exceptions import InfluxDBError
+from influxdb_client.client.write_api import SYNCHRONOUS, PointSettings, WriteType
 
 from importer.model import CsvRow, EnergyMeterPhase, NotifyStatusEvent, PhaseData
 
@@ -80,7 +76,7 @@ class LoggingBatchCallback(object):
         self.logger.info("Created LoggingBatchCallback")
 
     def success(self, conf: tuple[str, str, str], data: str):
-        self.logger.info(f"Written batch: {conf}, data: {data}")
+        self.logger.debug(f"Written batch: {conf}, data: {data}")
         # self.logger.info(f"Written batch: {conf}, data: {len(data.splitlines())} lines")
 
     def error(self, conf: tuple[str, str, str], data: str, exception: InfluxDBError):

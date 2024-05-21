@@ -11,6 +11,8 @@ from importer.shelly import Shelly
 
 pytestmark = pytest.mark.shelly
 
+UTC = datetime.timezone.utc
+
 
 @pytest.fixture
 def shelly():
@@ -64,7 +66,7 @@ def test_get_emdata_records(shelly: Shelly):
 
 
 def test_get_csv_data(shelly: Shelly):
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(tz=UTC)
     one_hour_ago = now - datetime.timedelta(hours=1)
     data = list(shelly.get_data(timestamp=one_hour_ago))
     assert len(data) == 60
@@ -84,13 +86,13 @@ def test_subscription(shelly: Shelly):
         if not event:
             event = data
 
-    start = datetime.datetime.now()
+    start = datetime.datetime.now(tz=UTC)
     subscription = shelly.subscribe(callback)
     while not event:
-        wait_time = datetime.datetime.now() - start
+        wait_time = datetime.datetime.now(tz=UTC) - start
         assert wait_time.total_seconds() < 10, f"No event received after {wait_time}"
         time.sleep(0.5)
     subscription.stop()
     delta = datetime.timedelta(seconds=5)
     assert event.timestamp > (start - delta)
-    assert event.timestamp < (datetime.datetime.now() + delta)
+    assert event.timestamp < (datetime.datetime.now(tz=UTC) + delta)

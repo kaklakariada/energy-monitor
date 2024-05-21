@@ -2,6 +2,8 @@ import datetime
 from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
+from importer.config import config
+
 MEASUREMENT_NAMES = {
     "a_total_act_energy",
     "a_fund_act_energy",
@@ -165,7 +167,7 @@ class CsvRow(NamedTuple):
             phase_data = {key[2:]: getattr(row, key) for key in MEASUREMENT_NAMES if key.startswith(f"{phase}_")}
             phases.append(PhaseData.from_dict(phase, phase_data))
         return cls(
-            timestamp=datetime.datetime.fromtimestamp(row.timestamp),
+            timestamp=datetime.datetime.fromtimestamp(row.timestamp, tz=datetime.timezone.utc),
             phase_a=phases[0],
             phase_b=phases[1],
             phase_c=phases[2],
@@ -446,7 +448,7 @@ class NotifyStatusEvent(NamedTuple):
     @staticmethod
     def from_dict(device_info: DeviceInfo, data: dict[str, Any]) -> "NotifyStatusEvent":
         params = data["params"]
-        timestamp = datetime.datetime.fromtimestamp(float(params["ts"]))
+        timestamp = datetime.datetime.fromtimestamp(float(params["ts"]), tz=config.timezone)
         em_data = params["em:0"]
         em_data["user_calibrated_phase"] = []
         raw = EnergyMeterStatusRaw.from_dict(em_data)
