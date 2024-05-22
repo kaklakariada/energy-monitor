@@ -64,12 +64,25 @@ class EventPointConverter:
         )
 
     def convert_event(self, device: str, event: NotifyStatusEvent) -> Iterable[Point]:
-        return (self._create_event_phase_point(device, event, phase) for phase in event.status.phases)
+        points: list[Point] = []
+        phases = (self._create_event_phase_point(device, event, phase) for phase in event.status.phases)
+        points.append(phases)
+        if event.status.n_current is not None:
+            points.append(
+                self.point(device=device, phase_name="neutral", timestamp=event.timestamp).field(
+                    "current", event.status.n_current
+                )
+            )
+        total = self.point(device=device, phase_name="total", timestamp=event.timestamp)
+        for field in ["current", "act_power", "aprt_power"]:
+            total.field(field, getattr(event.status, f"total_{field}"))
+        points.append(total)
+        return points
 
     def _create_event_phase_point(self, device: str, row: NotifyStatusEvent, phase: EnergyMeterPhase) -> Point:
         point = self.point(device, phase.phase_name, row.timestamp)
         for field in phase._fields:
-            if field != "errors":
+            if field not in ("errors", "phase_name"):
                 point.field(field, getattr(phase, field))
         return point
 
