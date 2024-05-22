@@ -64,9 +64,7 @@ class EventPointConverter:
         )
 
     def convert_event(self, device: str, event: NotifyStatusEvent) -> Iterable[Point]:
-        points: list[Point] = []
-        phases = (self._create_event_phase_point(device, event, phase) for phase in event.status.phases)
-        points.append(phases)
+        points = [self._create_event_phase_point(device, event, phase) for phase in event.status.phases]
         if event.status.n_current is not None:
             points.append(
                 self.point(device=device, phase_name="neutral", timestamp=event.timestamp).field(
