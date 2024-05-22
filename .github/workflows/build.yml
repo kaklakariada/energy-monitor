@@ -28,18 +28,7 @@ jobs:
       run: cd importer && poetry install
 
     - name: Create dummy config
-      run: |
-        cat <<EOT > importer/importer/config.py
-        from pathlib import Path
-
-        from importer.config_model import Config, DeviceConfig, InfluxDBConfig
-        
-        config = Config(
-            devices=[DeviceConfig(name="device1", ip="192.168.179.100")],
-            data_dir=Path("/tmp/data"),
-            influxdb=InfluxDBConfig(url="http://localhost:8086", bucket="bucket", org="home", token="token"),
-        )
-        EOT
+      run: cp importer/example-config.py importer/config.py
 
     - name: Run checks
       run: cd importer && poetry run nox -s check

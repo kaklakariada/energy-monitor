@@ -13,7 +13,7 @@ from typing import Any, Callable, Iterable, Optional
 import typer
 from typing_extensions import Annotated
 
-from importer.config import config
+from config import config
 from importer.config_model import DeviceConfig
 from importer.db import BatchWriter, DbClient
 from importer.model import ALL_FIELD_NAMES, CsvRow, NotifyStatusEvent, RawCsvRow

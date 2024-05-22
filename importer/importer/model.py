@@ -2,7 +2,7 @@ import datetime
 from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
-from importer.config import config
+from config import config
 
 MEASUREMENT_NAMES = {
     "a_total_act_energy",

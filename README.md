@@ -3,41 +3,17 @@ Energy monitor
 
 ## Initial Setup
 
-First clone this repository:
+1. Clone this repository:
+    ```sh
+    git clone https://github.com/kaklakariada/energy-monitor.git
+    ```
 
-```sh
-git clone https://github.com/kaklakariada/energy-monitor.git
-```
-
-Then create file [`importer/importer/config.py`](./importer/importer/config.py) with the following content and adapt it to your environment:
-
-```py
-from datetime import timezone
-from pathlib import Path
-
-import pytz
-
-from importer.config_model import Config, DeviceConfig, InfluxDBConfig
-
-config = Config(
-    devices=[DeviceConfig(name="device 1", ip="192.168.178.10"), DeviceConfig(name="device 2", ip="192.168.178.11")],
-    data_dir=Path("/home/user/energy-monitor/data"),
-    timezone=pytz.timezone("Europe/Berlin"),
-    influxdb=InfluxDBConfig(
-        url="http://localhost:8086",
-        bucket="<bucket_name>",
-        org="<org>",
-        token="<token>",
-    ),
-)
-```
-
-Install dependencies with
-
-```sh
-cd importer
-poetry install
-```
+2. Copy file [`importer/example-config.py`](./importer/example-config.py) to `importer/config.py` and adapt it to your environment.
+3. Install dependencies with
+    ```sh
+    cd importer
+    poetry install
+    ```
 
 ## Usage
 

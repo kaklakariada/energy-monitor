@@ -5,7 +5,7 @@ from typing import Optional
 
 import pytest
 
-from importer.config import config
+from config import config
 from importer.model import NotifyStatusEvent
 from importer.shelly import Shelly
 
