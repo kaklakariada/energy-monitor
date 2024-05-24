@@ -52,7 +52,7 @@ class DbClient:
             logger.info(f"Bucket {self.bucket} already exists")
 
     def insert_rows(self, device: str, rows: Iterable[CsvRow]):
-        converter = PointConverter(device)
+        converter = PointConverter()
         callback = LoggingBatchCallback()
 
         with self.client.write_api(
@@ -67,7 +67,7 @@ class DbClient:
             start_time = time.time()
             for row in rows:
                 row_count += 1
-                for point in converter.convert_csv_row_point(row):
+                for point in converter.convert(device, row):
                     assert point is not None
                     result = write_api.write(org=self.org, bucket=self.bucket, record=point)
                     point_count += 1

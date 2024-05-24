@@ -1,4 +1,5 @@
 import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
@@ -125,8 +126,14 @@ class RawCsvRow(NamedTuple):
         return cls(timestamp=timestamp, **values)
 
 
+class Phase(Enum):
+    A = "a"
+    B = "b"
+    C = "c"
+
+
 class PhaseData(NamedTuple):
-    phase_name: str
+    phase_name: Phase
     """Phase name, a, b or c"""
     total_act_energy: float
     fund_act_energy: float
@@ -146,15 +153,12 @@ class PhaseData(NamedTuple):
     avg_current: float
 
     @classmethod
-    def from_dict(cls, phase: str, row: dict[str, float]) -> "PhaseData":
+    def from_dict(cls, phase: Phase, row: dict[str, float]) -> "PhaseData":
         return cls(phase, **row)
 
 
 class CsvRow(NamedTuple):
     timestamp: datetime.datetime
-    phase_a: PhaseData
-    phase_b: PhaseData
-    phase_c: PhaseData
     phases: list[PhaseData]
     n_max_current: float
     n_min_current: float
@@ -163,30 +167,16 @@ class CsvRow(NamedTuple):
     @classmethod
     def from_raw(cls, row: RawCsvRow) -> "CsvRow":
         phases: list[PhaseData] = []
-        for phase in ["a", "b", "c"]:
-            phase_data = {key[2:]: getattr(row, key) for key in MEASUREMENT_NAMES if key.startswith(f"{phase}_")}
+        for phase in [Phase.A, Phase.B, Phase.C]:
+            phase_data = {key[2:]: getattr(row, key) for key in MEASUREMENT_NAMES if key.startswith(f"{phase.value}_")}
             phases.append(PhaseData.from_dict(phase, phase_data))
         return cls(
             timestamp=datetime.datetime.fromtimestamp(row.timestamp, tz=datetime.timezone.utc),
-            phase_a=phases[0],
-            phase_b=phases[1],
-            phase_c=phases[2],
             phases=phases,
             n_max_current=row.n_max_current,
             n_min_current=row.n_min_current,
             n_avg_current=row.n_avg_current,
         )
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "timestamp": self.timestamp.timestamp(),
-            "phase_a": self.phase_a._asdict(),
-            "phase_b": self.phase_b._asdict(),
-            "phase_c": self.phase_c._asdict(),
-            "n_max_current": self.n_max_current,
-            "n_min_current": self.n_min_current,
-            "n_avg_current": self.n_avg_current,
-        }
 
 
 class DeviceInfo(NamedTuple):
@@ -301,12 +291,6 @@ class EnergyMeterStatusRaw(NamedTuple):
 class EnergyMeterStatus(NamedTuple):
     id: int
     """Id of the EM component instance"""
-    phase_a: EnergyMeterPhase
-    """Phase A status"""
-    phase_b: EnergyMeterPhase
-    """Phase B status"""
-    phase_c: EnergyMeterPhase
-    """Phase C status"""
     phases: list[EnergyMeterPhase]
     """List of all phases status"""
     n_current: Optional[float]
@@ -346,6 +330,9 @@ class EnergyMeterStatus(NamedTuple):
             del data[f"{phase}_freq"]
             del data[f"{phase}_errors"]
         data["phases"] = [data[f"phase_{phase}"] for phase in {"a", "b", "c"}]
+        del data["phase_a"]  # FIXME
+        del data["phase_b"]
+        del data["phase_c"]
         return EnergyMeterStatus(**data)
 
 
@@ -441,7 +428,6 @@ class ShellyStatus(NamedTuple):
 
 class NotifyStatusEvent(NamedTuple):
     timestamp: datetime.datetime
-    device_info: DeviceInfo
     src: str
     status: EnergyMeterStatus
 
@@ -453,4 +439,4 @@ class NotifyStatusEvent(NamedTuple):
         em_data["user_calibrated_phase"] = []
         raw = EnergyMeterStatusRaw.from_dict(em_data)
         status = EnergyMeterStatus.from_raw(raw)
-        return NotifyStatusEvent(timestamp=timestamp, device_info=device_info, src=data["src"], status=status)
+        return NotifyStatusEvent(timestamp=timestamp, src=data["src"], status=status)
