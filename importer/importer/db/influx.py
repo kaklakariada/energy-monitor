@@ -6,7 +6,7 @@ from influxdb_client import InfluxDBClient, WriteApi, WriteOptions
 from influxdb_client.client.exceptions import InfluxDBError
 from influxdb_client.client.write_api import SYNCHRONOUS, PointSettings, WriteType
 
-from importer.db.influx_converter import EventPointConverter, PointConverter
+from importer.db.influx_converter import PointConverter
 from importer.model import CsvRow, NotifyStatusEvent
 
 logger = logging.getLogger("db")
@@ -87,7 +87,7 @@ class DbClient:
             error_callback=callback.error,
             retry_callback=callback.retry,
         )
-        return BatchWriter(converter=EventPointConverter(), write_api=write_api, bucket=self.bucket)
+        return BatchWriter(converter=PointConverter(), write_api=write_api, bucket=self.bucket)
 
     def query(self, query):
         query_api = self.client.query_api()
@@ -98,18 +98,18 @@ class DbClient:
 
 
 class BatchWriter:
-    converter: EventPointConverter
+    converter: PointConverter
     write_api: WriteApi
     bucket: str
 
-    def __init__(self, converter: EventPointConverter, write_api: WriteApi, bucket: str):
+    def __init__(self, converter: PointConverter, write_api: WriteApi, bucket: str):
         self.converter = converter
         self.write_api = write_api
         self.bucket = bucket
 
     def insert_status_event(self, device: str, event: NotifyStatusEvent):
         count = 0
-        for point in self.converter.convert_event(device, event):
+        for point in self.converter.convert(device, event):
             assert point is not None
             result = self.write_api.write(bucket=self.bucket, record=point)
             assert result is None

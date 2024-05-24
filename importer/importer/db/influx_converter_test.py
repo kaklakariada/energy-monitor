@@ -18,7 +18,7 @@ DEVICE = "dev"
 
 
 def test_convert_csv_row():
-    points = _convert_csv_row(
+    points = _convert(
         CsvRow(
             timestamp=TIMESTAMP, phases=[_phase_data(Phase.A)], n_max_current=1.1, n_min_current=2.2, n_avg_current=3.3
         )
@@ -34,7 +34,7 @@ def test_convert_csv_row():
     )
 
 
-def _convert_csv_row(row: CsvRow) -> list[Point]:
+def _convert(row: CsvRow | NotifyStatusEvent) -> list[Point]:
     return list(PointConverter().convert(DEVICE, row))
 
 
@@ -61,7 +61,7 @@ def _phase_data(phase_name: Phase) -> PhaseData:
 
 
 def test_convert_event() -> None:
-    points = _convert_event(
+    points = _convert(
         NotifyStatusEvent(
             src="src",
             timestamp=TIMESTAMP,
@@ -88,10 +88,6 @@ def test_convert_event() -> None:
         points[2].to_line_protocol()
         == f"em,device={DEVICE},phase=total,source=live act_power=1.1,aprt_power=2.2,current=3.3 {UNIX_TIMESTAMP}"
     )
-
-
-def _convert_event(event: NotifyStatusEvent) -> list[Point]:
-    return list(EventPointConverter().convert_event(DEVICE, event))
 
 
 def _event_phase(phase: str) -> EnergyMeterPhase:

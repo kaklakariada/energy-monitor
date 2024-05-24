@@ -10,7 +10,7 @@ from importer.model import CsvRow, EnergyMeterPhase, NotifyStatusEvent, Phase, P
 logger = logging.getLogger("db.converter")
 
 
-class PointConverter:
+class CsvRowPointConverter:
 
     def convert(self, device: str, row: CsvRow) -> Iterable[Point]:
         phases = (self._create_phase_point(device, row, phase) for phase in row.phases)
@@ -43,7 +43,7 @@ class PointConverter:
 
 class EventPointConverter:
 
-    def convert_event(self, device: str, event: NotifyStatusEvent) -> Iterable[Point]:
+    def convert(self, device: str, event: NotifyStatusEvent) -> Iterable[Point]:
         points = [self._create_event_phase_point(device, event, phase) for phase in event.status.phases]
         if event.status.n_current is not None:
             points.append(
@@ -72,3 +72,22 @@ class EventPointConverter:
             if field not in ("errors", "phase_name"):
                 point.field(field, getattr(phase, field))
         return point
+
+
+csv_converter = CsvRowPointConverter()
+event_converter = EventPointConverter()
+
+
+class PointConverter:
+
+    def convert(self, device: str, row: CsvRow | NotifyStatusEvent) -> Iterable[Point]:
+        converter = self._get_converter(row)
+        return converter.convert(device, row)
+
+    def _get_converter(self, row):
+        if isinstance(row, CsvRow):
+            return csv_converter
+        elif isinstance(row, NotifyStatusEvent):
+            return event_converter
+        else:
+            raise ValueError(f"Unsupported type {type(row)} {row}")
