@@ -97,8 +97,7 @@ class Shelly:
         reader = csv.DictReader(response.iter_lines(decode_unicode=True))
         assert reader.fieldnames is not None
         assert set(reader.fieldnames) == ALL_FIELD_NAMES
-        raw_rows = (RawCsvRow.from_dict(row) for row in reader)
-        rows = (CsvRow.from_raw(row) for row in raw_rows)
+        rows = (CsvRow.from_dict(row) for row in reader)
         return rows
 
     def download_csv_data(
@@ -188,13 +187,14 @@ class NotificationSubscription:
             while self._running:
                 response = websocket.recv()
                 data = json.loads(response)
+                print(data)
                 try:
                     method = data["method"]
                     if method == "NotifyEvent":
                         self._logger.debug(f"Ignoring event {data}")
                     elif method == "NotifyStatus":
                         if "em:0" in data["params"]:
-                            status = NotifyStatusEvent.from_dict(self._shelly.device_info, data)
+                            status = NotifyStatusEvent.from_dict(data)
                             self._callback(status)
                         else:
                             self._logger.debug(f"Ignoring event {data}")

@@ -51,5 +51,5 @@ markers = [
 addopts = [
     "--import-mode=importlib",
     "--strict-markers",
-    "--log-cli-level=debug",
+    #"--log-cli-level=debug",
 ]

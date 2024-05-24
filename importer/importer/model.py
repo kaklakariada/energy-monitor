@@ -165,7 +165,11 @@ class CsvRow(NamedTuple):
     n_avg_current: float
 
     @classmethod
-    def from_raw(cls, row: RawCsvRow) -> "CsvRow":
+    def from_dict(cls, row: dict[str | Any, str | Any]) -> "CsvRow":
+        return cls._from_raw(RawCsvRow.from_dict(row))
+
+    @classmethod
+    def _from_raw(cls, row: RawCsvRow) -> "CsvRow":
         phases: list[PhaseData] = []
         for phase in [Phase.A, Phase.B, Phase.C]:
             phase_data = {key[2:]: getattr(row, key) for key in MEASUREMENT_NAMES if key.startswith(f"{phase.value}_")}
@@ -311,7 +315,7 @@ class EnergyMeterStatus(NamedTuple):
     @staticmethod
     def from_raw(raw_data: EnergyMeterStatusRaw) -> "EnergyMeterStatus":
         data = raw_data._asdict()
-        for phase in {"a", "b", "c"}:
+        for phase in ["a", "b", "c"]:
             data[f"phase_{phase}"] = EnergyMeterPhase(
                 phase_name=phase,
                 current=data[f"{phase}_current"],
@@ -329,7 +333,7 @@ class EnergyMeterStatus(NamedTuple):
             del data[f"{phase}_pf"]
             del data[f"{phase}_freq"]
             del data[f"{phase}_errors"]
-        data["phases"] = [data[f"phase_{phase}"] for phase in {"a", "b", "c"}]
+        data["phases"] = [data[f"phase_{phase}"] for phase in ["a", "b", "c"]]
         del data["phase_a"]  # FIXME
         del data["phase_b"]
         del data["phase_c"]
@@ -432,7 +436,7 @@ class NotifyStatusEvent(NamedTuple):
     status: EnergyMeterStatus
 
     @staticmethod
-    def from_dict(device_info: DeviceInfo, data: dict[str, Any]) -> "NotifyStatusEvent":
+    def from_dict(data: dict[str, Any]) -> "NotifyStatusEvent":
         params = data["params"]
         timestamp = datetime.datetime.fromtimestamp(float(params["ts"]), tz=config.timezone)
         em_data = params["em:0"]
