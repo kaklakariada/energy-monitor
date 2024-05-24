@@ -187,7 +187,6 @@ class NotificationSubscription:
             while self._running:
                 response = websocket.recv()
                 data = json.loads(response)
-                print(data)
                 try:
                     method = data["method"]
                     if method == "NotifyEvent":
