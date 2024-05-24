@@ -15,7 +15,7 @@ from typing_extensions import Annotated
 
 from config import config
 from importer.config_model import DeviceConfig
-from importer.db import BatchWriter, DbClient
+from importer.db.influx import BatchWriter, DbClient
 from importer.model import ALL_FIELD_NAMES, CsvRow, NotifyStatusEvent, RawCsvRow
 from importer.shelly import NotificationSubscription, Shelly
 
