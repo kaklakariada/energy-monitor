@@ -2,7 +2,7 @@ import datetime
 
 from influxdb_client import Point
 
-from importer.db.influx_converter import EventPointConverter, PointConverter
+from importer.db.influx_converter import PointConverter
 from importer.model import (
     CsvRow,
     EnergyMeterPhase,

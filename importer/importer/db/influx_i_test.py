@@ -1,7 +1,8 @@
-from importer.db.influx import DbClient
-from importer.db.influx_converter_test import _create_event
 import pytest
 from testcontainers.influxdb2 import InfluxDb2Container
+
+from importer.db.influx import DbClient
+from importer.db.influx_converter_test import _create_event
 
 USERNAME = "admin"
 PASSWORD = "admin-password"

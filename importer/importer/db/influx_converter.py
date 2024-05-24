@@ -1,7 +1,7 @@
 import datetime
 import itertools
 import logging
-from typing import Iterable
+from typing import Any, Callable, Iterable
 
 from influxdb_client import Point, WritePrecision
 
@@ -81,13 +81,13 @@ event_converter = EventPointConverter()
 class PointConverter:
 
     def convert(self, device: str, row: CsvRow | NotifyStatusEvent) -> Iterable[Point]:
-        converter = self._get_converter(row)
-        return converter.convert(device, row)
+        convert = self._get_converter(row)
+        return convert(device, row)
 
-    def _get_converter(self, row):
+    def _get_converter(self, row) -> Callable[[str, Any], Iterable[Point]]:
         if isinstance(row, CsvRow):
-            return csv_converter
+            return csv_converter.convert
         elif isinstance(row, NotifyStatusEvent):
-            return event_converter
+            return event_converter.convert
         else:
             raise ValueError(f"Unsupported type {type(row)} {row}")

@@ -54,3 +54,19 @@ addopts = [
     "--strict-markers",
     #"--log-cli-level=debug",
 ]
+
+
+[tool.mypy]
+explicit_package_bases = true
+namespace_packages = true
+warn_return_any = true
+warn_unused_configs = true
+exclude = []
+disallow_untyped_defs = false
+ignore_missing_imports = true
+check_untyped_defs = true
+disallow_any_unimported = false
+disallow_any_expr = false
+disallow_subclassing_any = true
+disallow_any_generics = false
+disallow_any_explicit = false
