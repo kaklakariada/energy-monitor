@@ -315,29 +315,27 @@ class EnergyMeterStatus(NamedTuple):
     @staticmethod
     def from_raw(raw_data: EnergyMeterStatusRaw) -> "EnergyMeterStatus":
         data = raw_data._asdict()
-        for phase in ["a", "b", "c"]:
-            data[f"phase_{phase}"] = EnergyMeterPhase(
-                phase_name=phase,
-                current=data[f"{phase}_current"],
-                voltage=data[f"{phase}_voltage"],
-                act_power=data[f"{phase}_act_power"],
-                aprt_power=data[f"{phase}_aprt_power"],
-                pf=data[f"{phase}_pf"],
-                freq=data[f"{phase}_freq"],
-                errors=data[f"{phase}_errors"],
+        phases: list[EnergyMeterPhase] = []
+        for phase_name in ["a", "b", "c"]:
+            phase = EnergyMeterPhase(
+                phase_name=phase_name,
+                current=data[f"{phase_name}_current"],
+                voltage=data[f"{phase_name}_voltage"],
+                act_power=data[f"{phase_name}_act_power"],
+                aprt_power=data[f"{phase_name}_aprt_power"],
+                pf=data[f"{phase_name}_pf"],
+                freq=data[f"{phase_name}_freq"],
+                errors=data[f"{phase_name}_errors"],
             )
-            del data[f"{phase}_current"]
-            del data[f"{phase}_voltage"]
-            del data[f"{phase}_act_power"]
-            del data[f"{phase}_aprt_power"]
-            del data[f"{phase}_pf"]
-            del data[f"{phase}_freq"]
-            del data[f"{phase}_errors"]
-        data["phases"] = [data[f"phase_{phase}"] for phase in ["a", "b", "c"]]
-        del data["phase_a"]  # FIXME
-        del data["phase_b"]
-        del data["phase_c"]
-        return EnergyMeterStatus(**data)
+            phases.append(phase)
+            del data[f"{phase_name}_current"]
+            del data[f"{phase_name}_voltage"]
+            del data[f"{phase_name}_act_power"]
+            del data[f"{phase_name}_aprt_power"]
+            del data[f"{phase_name}_pf"]
+            del data[f"{phase_name}_freq"]
+            del data[f"{phase_name}_errors"]
+        return EnergyMeterStatus(phases=phases, **data)
 
 
 class EnergyMeterData(NamedTuple):
