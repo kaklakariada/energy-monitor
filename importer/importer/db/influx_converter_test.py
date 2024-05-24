@@ -61,23 +61,7 @@ def _phase_data(phase_name: Phase) -> PhaseData:
 
 
 def test_convert_event() -> None:
-    points = _convert(
-        NotifyStatusEvent(
-            src="src",
-            timestamp=TIMESTAMP,
-            status=EnergyMeterStatus(
-                id=1,
-                phases=[_event_phase("a")],
-                errors=[],
-                n_current=1.1,
-                n_errors=[],
-                total_act_power=1.1,
-                total_aprt_power=2.2,
-                total_current=3.3,
-                user_calibrated_phase=[],
-            ),
-        )
-    )
+    points = _convert(_create_event())
     assert len(points) == 3
     assert (
         points[0].to_line_protocol()
@@ -87,6 +71,24 @@ def test_convert_event() -> None:
     assert (
         points[2].to_line_protocol()
         == f"em,device={DEVICE},phase=total,source=live act_power=1.1,aprt_power=2.2,current=3.3 {UNIX_TIMESTAMP}"
+    )
+
+
+def _create_event():
+    return NotifyStatusEvent(
+        src="src",
+        timestamp=TIMESTAMP,
+        status=EnergyMeterStatus(
+            id=1,
+            phases=[_event_phase("a")],
+            errors=[],
+            n_current=1.1,
+            n_errors=[],
+            total_act_power=1.1,
+            total_aprt_power=2.2,
+            total_current=3.3,
+            user_calibrated_phase=[],
+        ),
     )
 
 
