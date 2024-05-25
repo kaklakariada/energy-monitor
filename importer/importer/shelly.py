@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Generator, NamedTuple, Optional
 
 import requests
+import tqdm
 from websockets.sync.client import connect as connect_websocket
 
 from importer.config_model import DeviceConfig
@@ -100,6 +101,16 @@ class Shelly:
         rows = (CsvRow.from_dict(row) for row in reader)
         return rows
 
+    def _estimated_total_size(
+        self,
+        timestamp: Optional[datetime.datetime],
+        end_timestamp: Optional[datetime.datetime] = None,
+    ) -> float:
+        bytes_per_record = 337
+        end_timestamp = end_timestamp or datetime.datetime.now()
+        delta = end_timestamp - timestamp
+        return delta.total_seconds() / 60 * bytes_per_record
+
     def download_csv_data(
         self,
         target_file: Path,
@@ -111,11 +122,14 @@ class Shelly:
         logger.debug(f"Writing CSV data to {target_file}...")
         _create_dir(target_file.parent)
         size = 0
+        progress_bar = tqdm.tqdm(total=self._estimated_total_size(timestamp, end_timestamp), unit="iB", unit_scale=True)
         with open(target_file, "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:  # filter out keep-alive new chunks
                     byte_count = file.write(chunk)
+                    progress_bar.update(byte_count)
                     size += byte_count
+        progress_bar.close()
         logger.debug(f"Wrote {size} bytes of CSV data to {target_file}")
 
     def _get_data_response(
