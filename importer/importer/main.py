@@ -10,6 +10,7 @@ import traceback
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
+from importer.logger import MAIN_LOGGER
 import typer
 from typing_extensions import Annotated
 
@@ -18,17 +19,18 @@ from importer.config_model import DeviceConfig
 from importer.db.influx import BatchWriter, DbClient
 from importer.model import ALL_FIELD_NAMES, CsvRow, NotifyStatusEvent, RawCsvRow
 from importer.shelly import NotificationSubscription, Shelly
+from importer.shelly_multiplexer import ShellyMultiplexer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(threadName)s - %(levelname)s - %(name)s - %(message)s")
-logger = logging.getLogger("main")
+logger = MAIN_LOGGER.getChild("main")
 
 
 def _configure_logging(
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose log output")] = False
 ) -> None:
     if verbose:
-        logger.setLevel(logging.DEBUG)
-        logger.debug("Enable verbose mode")
+        MAIN_LOGGER.setLevel(logging.DEBUG)
+        MAIN_LOGGER.debug(f"Enable verbose mode for root logger '{logger.name}'")
 
 
 app = typer.Typer(no_args_is_help=True, callback=_configure_logging)
@@ -94,33 +96,21 @@ def live():
     )
     db.ensure_bucket_exists()
     writer = db.batch_writer()
-    stop_event = threading.Event()
-    subscriptions: list[NotificationSubscription] = []
-    for device in config.devices:
-        subscriptions.append(_subscribe_device(device, writer))
-    try:
-        stop_event.wait()
-    except KeyboardInterrupt:
-        logger.info(f"Stopping {len(subscriptions)} subscriptions...")
-        for subscription in subscriptions:
-            subscription.stop()
-        logger.debug("Closing database connection...")
-        writer.close()
-        db.close()
 
-
-def _subscribe_device(device: DeviceConfig, writer: BatchWriter) -> NotificationSubscription:
-
-    def callback(data: NotifyStatusEvent):
+    def callback(_device: Shelly, data: NotifyStatusEvent):
         logger.debug(
-            f"Received from {device.name}, act. power: {data.status.total_act_power}W, current: {data.status.total_current}A"
+            f"Received from {_device.name}, act. power: {data.status.total_act_power}W, current: {data.status.total_current}A"
         )
-        writer.insert_status_event(device.name, data)
+        writer.insert_status_event(_device.name, data)
 
-    shelly = Shelly(device)
-    subscription = shelly.subscribe(callback)
-    logger.info(f"Subscribed to {shelly.device_name}")
-    return subscription
+    stop_event = threading.Event()
+    with ShellyMultiplexer(config.devices).subscribe(callback):
+        try:
+            stop_event.wait()
+        except KeyboardInterrupt:
+            logger.debug("Closing database connection...")
+            writer.close()
+            db.close()
 
 
 @app.command()

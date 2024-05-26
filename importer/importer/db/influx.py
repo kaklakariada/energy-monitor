@@ -2,6 +2,7 @@ import logging
 import time
 from typing import Generator, Iterable
 
+from importer.logger import MAIN_LOGGER
 from influxdb_client import InfluxDBClient, WriteApi, WriteOptions
 from influxdb_client.client.exceptions import InfluxDBError
 from influxdb_client.client.write_api import SYNCHRONOUS, PointSettings, WriteType
@@ -9,17 +10,17 @@ from influxdb_client.client.write_api import SYNCHRONOUS, PointSettings, WriteTy
 from importer.db.influx_converter import PointConverter
 from importer.model import CsvRow, NotifyStatusEvent
 
-logger = logging.getLogger("db")
+logger = MAIN_LOGGER.getChild("db")
 
 
-class LoggingBatchCallback(object):
+class LoggingBatchCallback:
     def __init__(self) -> None:
-        self.logger = logger
+
+        self.logger = logger.getChild("batch")
         self.logger.info("Created LoggingBatchCallback")
 
     def success(self, conf: tuple[str, str, str], data: str):
-        self.logger.debug(f"Written batch: {conf}, data: {data}")
-        # self.logger.info(f"Written batch: {conf}, data: {len(data.splitlines())} lines")
+        self.logger.debug(f"Written batch: {conf}, data: {len(data.splitlines())} lines")
 
     def error(self, conf: tuple[str, str, str], data: str, exception: InfluxDBError):
         self.logger.error(f"Cannot write batch: {conf}, data: {data} due: {exception}")
@@ -115,7 +116,6 @@ class BatchWriter:
             assert result is None
             count += 1
         self.flush()
-        logger.debug(f"Wrote {count} points for event")
 
     def flush(self):
         self.write_api.flush()

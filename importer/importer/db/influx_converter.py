@@ -3,11 +3,12 @@ import itertools
 import logging
 from typing import Any, Callable, Iterable
 
+from importer.logger import MAIN_LOGGER
 from influxdb_client import Point, WritePrecision
 
 from importer.model import CsvRow, EnergyMeterPhase, NotifyStatusEvent, Phase, PhaseData
 
-logger = logging.getLogger("db.converter")
+logger = MAIN_LOGGER.getChild("db").getChild("converter")
 
 
 class CsvRowPointConverter:
