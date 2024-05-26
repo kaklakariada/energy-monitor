@@ -1,13 +1,13 @@
 import logging
 import time
-from typing import Generator, Iterable
+from typing import Generator, Iterable, Optional
 
-from importer.logger import MAIN_LOGGER
 from influxdb_client import InfluxDBClient, WriteApi, WriteOptions
 from influxdb_client.client.exceptions import InfluxDBError
 from influxdb_client.client.write_api import SYNCHRONOUS, PointSettings, WriteType
 
 from importer.db.influx_converter import PointConverter
+from importer.logger import MAIN_LOGGER
 from importer.model import CsvRow, NotifyStatusEvent
 
 logger = MAIN_LOGGER.getChild("db")
@@ -29,22 +29,23 @@ class LoggingBatchCallback:
         self.logger.warning(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 
+converter = PointConverter()
+
+
 class DbClient:
+    _client: InfluxDBClient
+
     def __init__(self, url: str, token: str, org: str, bucket: str) -> None:
         self.url = url
         self.token = token
         self.org = org
         self.bucket = bucket
         logger.info(f"Connecting to {self.url} / org {self.org} / bucket {self.bucket}...")
-        self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
-
-    def __del__(self):
-        logger.info("Closing client...")
-        self.client.close()
-        del self.client
+        self._client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
+        self._logging_callback = LoggingBatchCallback()
 
     def ensure_bucket_exists(self):
-        buckets_api = self.client.buckets_api()
+        buckets_api = self._client.buckets_api()
         bucket = buckets_api.find_bucket_by_name(self.bucket)
         if bucket is None:
             buckets_api.create_bucket(bucket_name=self.bucket, org_id=self.org)
@@ -53,15 +54,12 @@ class DbClient:
             logger.info(f"Bucket {self.bucket} already exists")
 
     def insert_rows(self, device: str, rows: Iterable[CsvRow]):
-        converter = PointConverter()
-        callback = LoggingBatchCallback()
-
-        with self.client.write_api(
+        with self._client.write_api(
             write_options=WriteOptions(write_type=WriteType.batching),
             point_settings=PointSettings(device=device),
-            success_callback=callback.success,
-            error_callback=callback.error,
-            retry_callback=callback.retry,
+            success_callback=self._logging_callback.success,
+            error_callback=self._logging_callback.error,
+            retry_callback=self._logging_callback.retry,
         ) as write_api:
             row_count = 0
             point_count = 0
@@ -77,48 +75,68 @@ class DbClient:
             logger.debug(f"Wrote {point_count} points for {row_count} rows in {duration:.2f} seconds")
 
     def batch_writer(self) -> "BatchWriter":
-        callback = LoggingBatchCallback()
-        write_api = self.client.write_api(
+        write_api = self._client.write_api(
             write_options=WriteOptions(
                 write_type=WriteType.batching,
                 batch_size=1_000,
                 flush_interval=1_000,
             ),
-            success_callback=callback.success,
-            error_callback=callback.error,
-            retry_callback=callback.retry,
+            success_callback=self._logging_callback.success,
+            error_callback=self._logging_callback.error,
+            retry_callback=self._logging_callback.retry,
         )
         return BatchWriter(converter=PointConverter(), write_api=write_api, bucket=self.bucket)
 
     def query(self, query):
-        query_api = self.client.query_api()
+        query_api = self._client.query_api()
         return query_api.query(query)
 
     def close(self) -> None:
-        self.client.close()
+        logger.info("Closing client...")
+        self._client.close()
+        del self._client
+
+    def __enter__(self) -> "DbClient":
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()
+
+    def __del__(self):
+        self.close()
 
 
 class BatchWriter:
-    converter: PointConverter
-    write_api: WriteApi
-    bucket: str
+    _converter: PointConverter
+    _write_api: WriteApi
+    _bucket: str
 
     def __init__(self, converter: PointConverter, write_api: WriteApi, bucket: str):
-        self.converter = converter
-        self.write_api = write_api
-        self.bucket = bucket
+        self._converter = converter
+        self._write_api = write_api
+        self._bucket = bucket
 
     def insert_status_event(self, device: str, event: NotifyStatusEvent):
+        if not self._write_api:
+            logger.warning("Can't add event, BatchWriter is closed")
+            return
         count = 0
-        for point in self.converter.convert(device, event):
+        for point in self._converter.convert(device, event):
             assert point is not None
-            result = self.write_api.write(bucket=self.bucket, record=point)
+            result = self._write_api.write(bucket=self._bucket, record=point)
             assert result is None
             count += 1
         self.flush()
 
     def flush(self):
-        self.write_api.flush()
+        self._write_api.flush()
 
     def close(self):
-        self.write_api.close()
+        self._write_api.close()
+        del self._write_api
+
+    def __enter__(self) -> "BatchWriter":
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()

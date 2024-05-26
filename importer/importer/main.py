@@ -10,13 +10,13 @@ import traceback
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
-from importer.logger import MAIN_LOGGER
 import typer
 from typing_extensions import Annotated
 
 from config import config
 from importer.config_model import DeviceConfig
 from importer.db.influx import BatchWriter, DbClient
+from importer.logger import MAIN_LOGGER
 from importer.model import ALL_FIELD_NAMES, CsvRow, NotifyStatusEvent, RawCsvRow
 from importer.shelly import NotificationSubscription, Shelly
 from importer.shelly_multiplexer import ShellyMultiplexer
@@ -44,7 +44,7 @@ def download(
     Download CSV data to local files.
     """
     target_dir = config.data_dir
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
     start_timestamp = _get_start_timestamp(age, now)
     for device in config.devices:
         _download_device(device, target_dir, now, start_timestamp)
@@ -88,29 +88,28 @@ def live():
     """
     Subscribe to live data and insert it into the database.
     """
-    db = DbClient(
+    with DbClient(
         url=config.influxdb.url,
         token=config.influxdb.token,
         org=config.influxdb.org,
         bucket=config.influxdb.bucket,
-    )
-    db.ensure_bucket_exists()
-    writer = db.batch_writer()
+    ) as db:
+        db.ensure_bucket_exists()
+        with db.batch_writer() as writer:
 
-    def callback(_device: Shelly, data: NotifyStatusEvent):
-        logger.debug(
-            f"Received from {_device.name}, act. power: {data.status.total_act_power}W, current: {data.status.total_current}A"
-        )
-        writer.insert_status_event(_device.name, data)
+            def callback(_device: Shelly, data: NotifyStatusEvent):
+                logger.debug(
+                    f"Received from {_device.name}, act. power: {data.status.total_act_power}W, current: {data.status.total_current}A"
+                )
+                writer.insert_status_event(_device.name, data)
 
-    stop_event = threading.Event()
-    with ShellyMultiplexer(config.devices).subscribe(callback):
-        try:
-            stop_event.wait()
-        except KeyboardInterrupt:
-            logger.debug("Closing database connection...")
-            writer.close()
-            db.close()
+            stop_event = threading.Event()
+            with ShellyMultiplexer(config.devices).subscribe(callback):
+                try:
+                    stop_event.wait()
+                except KeyboardInterrupt:
+                    logger.debug("Interrupted by user")
+    logger.info("Live data capturing stopped.")
 
 
 @app.command()

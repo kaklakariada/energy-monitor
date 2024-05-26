@@ -7,13 +7,13 @@ import traceback
 from pathlib import Path
 from typing import Any, Callable, Generator, Optional
 
-from importer.logger import MAIN_LOGGER
 import requests
 import tqdm
 from websockets.sync.client import Connection
 from websockets.sync.client import connect as connect_websocket
 
 from importer.config_model import DeviceConfig
+from importer.logger import MAIN_LOGGER
 from importer.model import (
     ALL_FIELD_NAMES,
     CsvRow,
