@@ -658,13 +658,13 @@ files = [
 
 [[package]]
 name = "testcontainers"
-version = "4.4.1"
+version = "4.5.0"
 description = "Python library for throwaway instances of anything that can run in a Docker container"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "testcontainers-4.4.1-py3-none-any.whl", hash = "sha256:0ab41538d363576c30dcb9064bf50736d310da4ff99a8ab4f58bee9ac9e44cc6"},
-    {file = "testcontainers-4.4.1.tar.gz", hash = "sha256:fdc9e6cfb6f4b2d4ecf1f7ff286c76283cd5fe0f91f71baf9817f505fa14575d"},
+    {file = "testcontainers-4.5.0-py3-none-any.whl", hash = "sha256:6833df7db4cf8403feb1e4daf69b02a091d9da37aa3e8e808c756abbddb41cf3"},
+    {file = "testcontainers-4.5.0.tar.gz", hash = "sha256:e8610985cae2f0bc4bc3991896a47d5547f3ed896192970826151059a75f4ac2"},
 ]
 
 [package.dependencies]
@@ -997,4 +997,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "1da626ab96d25528ca18bbc510f4c605e1bf01689960576f34dee762a3051fd3"
+content-hash = "87e8af91f90d2bc3bd9ba77999b4e7e3169c9e44226e7b20785b86924195258f"
