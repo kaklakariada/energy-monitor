@@ -161,7 +161,7 @@ class Shelly:
         return f"Shelly {self.name} at {self.ip}"
 
 
-RECEIVE_TIMEOUT = datetime.timedelta(seconds=1)
+RECEIVE_TIMEOUT = datetime.timedelta(seconds=5)
 
 
 class NotificationSubscription:
@@ -229,9 +229,7 @@ class NotificationSubscription:
 
     def request_stop(self):
         self._running = False
-        self._logger.info(
-            f"Waiting for thread {self._client_id} / device {self._shelly.device_name} to stop (timeout: {RECEIVE_TIMEOUT})..."
-        )
+        self._logger.info(f"Sent stop signal to thread {self._client_id} / device {self._shelly.device_name}...")
 
     def join_thread(self):
         self._logger.info(

@@ -33,7 +33,7 @@ converter = PointConverter()
 
 
 class DbClient:
-    _client: InfluxDBClient
+    _client: Optional[InfluxDBClient]
 
     def __init__(self, url: str, token: str, org: str, bucket: str) -> None:
         self.url = url
@@ -44,8 +44,13 @@ class DbClient:
         self._client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
         self._logging_callback = LoggingBatchCallback()
 
+    def _get_client(self) -> InfluxDBClient:
+        if self._client is None:
+            raise ValueError("Client is closed")
+        return self._client
+
     def ensure_bucket_exists(self):
-        buckets_api = self._client.buckets_api()
+        buckets_api = self._get_client().buckets_api()
         bucket = buckets_api.find_bucket_by_name(self.bucket)
         if bucket is None:
             buckets_api.create_bucket(bucket_name=self.bucket, org_id=self.org)
@@ -54,7 +59,7 @@ class DbClient:
             logger.info(f"Bucket {self.bucket} already exists")
 
     def insert_rows(self, device: str, rows: Iterable[CsvRow]):
-        with self._client.write_api(
+        with self._get_client().write_api(
             write_options=WriteOptions(write_type=WriteType.batching),
             point_settings=PointSettings(device=device),
             success_callback=self._logging_callback.success,
@@ -75,7 +80,7 @@ class DbClient:
             logger.debug(f"Wrote {point_count} points for {row_count} rows in {duration:.2f} seconds")
 
     def batch_writer(self) -> "BatchWriter":
-        write_api = self._client.write_api(
+        write_api = self._get_client().write_api(
             write_options=WriteOptions(
                 write_type=WriteType.batching,
                 batch_size=1_000,
@@ -88,13 +93,15 @@ class DbClient:
         return BatchWriter(converter=PointConverter(), write_api=write_api, bucket=self.bucket)
 
     def query(self, query):
-        query_api = self._client.query_api()
+        query_api = self._get_client().query_api()
         return query_api.query(query)
 
     def close(self) -> None:
+        if self._client is None:
+            return
         logger.info("Closing client...")
         self._client.close()
-        del self._client
+        self._client = None
 
     def __enter__(self) -> "DbClient":
         return self
@@ -108,7 +115,7 @@ class DbClient:
 
 class BatchWriter:
     _converter: PointConverter
-    _write_api: WriteApi
+    _write_api: Optional[WriteApi]
     _bucket: str
 
     def __init__(self, converter: PointConverter, write_api: WriteApi, bucket: str):
@@ -116,24 +123,29 @@ class BatchWriter:
         self._write_api = write_api
         self._bucket = bucket
 
+    def _get_write_api(self) -> WriteApi:
+        if self._write_api is None:
+            raise ValueError("BatchWriter is closed")
+        return self._write_api
+
     def insert_status_event(self, device: str, event: NotifyStatusEvent):
-        if not self._write_api:
-            logger.warning("Can't add event, BatchWriter is closed")
-            return
+        write_api = self._get_write_api()
         count = 0
         for point in self._converter.convert(device, event):
             assert point is not None
-            result = self._write_api.write(bucket=self._bucket, record=point)
+            result = write_api.write(bucket=self._bucket, record=point)
             assert result is None
             count += 1
         self.flush()
 
     def flush(self):
-        self._write_api.flush()
+        self._get_write_api().flush()
 
     def close(self):
+        if self._write_api is None:
+            return
         self._write_api.close()
-        del self._write_api
+        self._write_api = None
 
     def __enter__(self) -> "BatchWriter":
         return self
