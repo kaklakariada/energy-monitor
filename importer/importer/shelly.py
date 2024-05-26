@@ -101,16 +101,6 @@ class Shelly:
         rows = (CsvRow.from_dict(row) for row in reader)
         return rows
 
-    def _estimated_total_size(
-        self,
-        timestamp: Optional[datetime.datetime],
-        end_timestamp: Optional[datetime.datetime] = None,
-    ) -> float:
-        bytes_per_record = 337
-        end_timestamp = end_timestamp or datetime.datetime.now()
-        delta = end_timestamp - timestamp
-        return delta.total_seconds() / 60 * bytes_per_record
-
     def download_csv_data(
         self,
         target_file: Path,
@@ -122,7 +112,7 @@ class Shelly:
         logger.debug(f"Writing CSV data to {target_file}...")
         _create_dir(target_file.parent)
         size = 0
-        progress_bar = tqdm.tqdm(total=self._estimated_total_size(timestamp, end_timestamp), unit="iB", unit_scale=True)
+        progress_bar = tqdm.tqdm(total=_estimated_total_size(timestamp, end_timestamp), unit="iB", unit_scale=True)
         with open(target_file, "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:  # filter out keep-alive new chunks
@@ -227,3 +217,16 @@ class NotificationSubscription:
 def _create_dir(dir: Path) -> None:
     if not dir.exists():
         dir.mkdir(parents=True)
+
+
+def _estimated_total_size(
+    timestamp: Optional[datetime.datetime],
+    end_timestamp: Optional[datetime.datetime] = None,
+) -> Optional[float]:
+    if timestamp is None:
+        return None
+    header_size = 866
+    bytes_per_record = 334
+    end_timestamp = end_timestamp or datetime.datetime.now(tz=datetime.timezone.utc)
+    delta_minutes = (end_timestamp - timestamp).total_seconds() / 60
+    return header_size + (delta_minutes * bytes_per_record)

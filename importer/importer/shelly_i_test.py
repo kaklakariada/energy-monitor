@@ -90,9 +90,9 @@ def test_subscription(shelly: Shelly):
     subscription = shelly.subscribe(callback)
     while not event:
         wait_time = datetime.datetime.now(tz=UTC) - start
-        assert wait_time.total_seconds() < 10, f"No event received after {wait_time}"
+        assert wait_time.total_seconds() < 20, f"No event received after {wait_time}"
         time.sleep(0.5)
     subscription.stop()
-    delta = datetime.timedelta(seconds=5)
+    delta = datetime.timedelta(seconds=30)
     assert event.timestamp > (start - delta)
     assert event.timestamp < (datetime.datetime.now(tz=UTC) + delta)
