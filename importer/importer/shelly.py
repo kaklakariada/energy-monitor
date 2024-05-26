@@ -201,6 +201,7 @@ class NotificationSubscription:
             websocket.send('{"id": 1, "src": "' + self._client_id + '"}')
             while self._running:
                 self._receive_loop(websocket)
+        self._logger.info(f"Stopped thread {self._client_id} / device {self._shelly.device_name}")
 
     def _receive_loop(self, websocket: Connection) -> None:
         try:
@@ -214,16 +215,16 @@ class NotificationSubscription:
             self._logger.error(f"Error processing data {data}: {e}")
             traceback.print_exception(e)
 
-    def _process_data(self, data):
+    def _process_data(self, data: dict[str, Any]):
         method = data["method"]
         if method == "NotifyEvent":
-            self._logger.debug(f"Ignoring event {data}")
+            self._logger.debug(f"Ignoring NotifyEvent {data}")
         elif method == "NotifyStatus":
             if "em:0" in data["params"]:
                 status = NotifyStatusEvent.from_dict(data)
                 self._callback(self._shelly, status)
             else:
-                self._logger.debug(f"Ignoring event {data}")
+                self._logger.debug(f"Ignoring NotifyStatus event with missing 'em:0' param: {data}")
         else:
             raise RpcError(f"Unexpected event method {method} in data {data}")
 
