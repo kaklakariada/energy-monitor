@@ -2,16 +2,18 @@ import csv
 import datetime
 import json
 import logging
-import random
 import threading
 import traceback
 from pathlib import Path
 from typing import Any, Callable, Generator, NamedTuple, Optional
 
 import requests
+import tqdm
+from websockets.sync.client import Connection
 from websockets.sync.client import connect as connect_websocket
 
 from importer.config_model import DeviceConfig
+from importer.logger import MAIN_LOGGER
 from importer.model import (
     ALL_FIELD_NAMES,
     CsvRow,
@@ -26,33 +28,47 @@ from importer.model import (
     SystemStatus,
 )
 
-logger = logging.getLogger("shelly")
+logger = MAIN_LOGGER.getChild("shelly")
 
 
 class RpcError(Exception):
     pass
 
 
+NotificationCallback = Callable[["Shelly", NotifyStatusEvent], None]
+
+
+class CsvDownloadResult(NamedTuple):
+    device_name: str
+    target_file: Path
+    size: int
+    duration: datetime.timedelta
+
+
 class Shelly:
     ip: str
-    device_info: DeviceInfo
+    name: str
+    device_info: Optional[DeviceInfo]
 
     def __init__(self, config: DeviceConfig) -> None:
         self.ip = config.ip
-        self.device_info = self._get_device_info()
-        logger.debug(f"Connected to '{self.device_info.name}' at {self.ip}")
+        self.name = config.name
+        self.device_info = None
+        logger.debug(f"Connected to '{self.name}' at {self.ip}")
 
-    def _get_device_info(self) -> DeviceInfo:
-        data = self._rpc_call("Shelly.GetDeviceInfo", {"ident": True})
-        return DeviceInfo.from_dict(data)
+    def get_device_info(self) -> DeviceInfo:
+        if self.device_info is None:
+            data = self._rpc_call("Shelly.GetDeviceInfo", {"ident": True})
+            self.device_info = DeviceInfo.from_dict(data)
+        return self.device_info
 
     @property
     def device_name(self):
-        return self.device_info.name
+        return self.name
 
     @property
     def device_id(self):
-        return self.device_info.id
+        return self.get_device_info().id
 
     @property
     def rpc_url(self):
@@ -60,7 +76,7 @@ class Shelly:
 
     def get_status(self) -> ShellyStatus:
         data = self._rpc_call("Shelly.GetStatus", {})
-        return ShellyStatus.from_dict(self.device_info, data)
+        return ShellyStatus.from_dict(self.get_device_info(), data)
 
     def get_system_status(self) -> SystemStatus:
         data = self._rpc_call("Sys.GetStatus", {})
@@ -68,7 +84,7 @@ class Shelly:
 
     def get_emdata_status(self) -> EnergyMeterData:
         data = self._rpc_call("EMData.GetStatus", {"id": 0})
-        return EnergyMeterData.from_dict(self.device_info, data)
+        return EnergyMeterData.from_dict(self.get_device_info(), data)
 
     def get_em_status(self) -> EnergyMeterStatus:
         data = self._rpc_call("EM.GetStatus", {"id": 0})
@@ -97,8 +113,7 @@ class Shelly:
         reader = csv.DictReader(response.iter_lines(decode_unicode=True))
         assert reader.fieldnames is not None
         assert set(reader.fieldnames) == ALL_FIELD_NAMES
-        raw_rows = (RawCsvRow.from_dict(row) for row in reader)
-        rows = (CsvRow.from_raw(row) for row in raw_rows)
+        rows = (CsvRow.from_dict(row) for row in reader)
         return rows
 
     def download_csv_data(
@@ -107,17 +122,23 @@ class Shelly:
         timestamp: Optional[datetime.datetime],
         end_timestamp: Optional[datetime.datetime] = None,
         id: int = 0,
-    ) -> None:
+    ) -> CsvDownloadResult:
         response = self._get_data_response(timestamp=timestamp, end_timestamp=end_timestamp, id=id)
         logger.debug(f"Writing CSV data to {target_file}...")
         _create_dir(target_file.parent)
         size = 0
+        start_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+        progress_bar = tqdm.tqdm(total=_estimated_total_size(timestamp, end_timestamp), unit="iB", unit_scale=True)
         with open(target_file, "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:  # filter out keep-alive new chunks
                     byte_count = file.write(chunk)
+                    progress_bar.update(byte_count)
                     size += byte_count
-        logger.debug(f"Wrote {size} bytes of CSV data to {target_file}")
+        progress_bar.close()
+        duration = datetime.datetime.now(tz=datetime.timezone.utc) - start_timestamp
+        logger.debug(f"Wrote {size} bytes of CSV data to {target_file} in {duration}")
+        return CsvDownloadResult(target_file=target_file, size=size, duration=duration, device_name=self.name)
 
     def _get_data_response(
         self, timestamp: Optional[datetime.datetime], end_timestamp: Optional[datetime.datetime], id: int
@@ -141,30 +162,33 @@ class Shelly:
             raise RpcError(f"Error in response: {json_data['error']}")
         return json_data["result"]
 
-    def subscribe(self, callback: Callable[[NotifyStatusEvent], None]) -> "NotificationSubscription":
+    def subscribe(self, callback: NotificationCallback) -> "NotificationSubscription":
         subscription = NotificationSubscription(self, callback)
-        subscription.subscribe()
+        subscription._subscribe()
         return subscription
 
     def __str__(self):
-        return f"Shelly {self.device_info.name} at {self.ip}"
+        return f"Shelly {self.name} at {self.ip}"
+
+
+RECEIVE_TIMEOUT = datetime.timedelta(seconds=5)
 
 
 class NotificationSubscription:
     _logger: logging.Logger
     _shelly: Shelly
-    _callback: Callable[[NotifyStatusEvent], None]
+    _callback: NotificationCallback
     _client_id: str
     _running: bool
     _thread: threading.Thread
 
-    def __init__(self, shelly: Shelly, callback: Callable[[NotifyStatusEvent], None]) -> None:
+    def __init__(self, shelly: Shelly, callback: NotificationCallback) -> None:
         self._shelly = shelly
         self._callback = callback
-        self._client_id = f"client-{random.randint(0, 1000000)}"
-        self._logger = logging.getLogger(f"ws-{self._client_id}")
+        self._client_id = f"client-{self._shelly.name}"
+        self._logger = logger.getChild(f"ws-{self._client_id}")
 
-    def subscribe(self):
+    def _subscribe(self):
         callback = self._handle_exception(self._subscribe_thread)
         self._thread = threading.Thread(target=callback, name=f"subscription-{self._client_id}")
         self._running = True
@@ -186,31 +210,65 @@ class NotificationSubscription:
         with connect_websocket(ws_url) as websocket:
             websocket.send('{"id": 1, "src": "' + self._client_id + '"}')
             while self._running:
-                response = websocket.recv()
-                data = json.loads(response)
-                try:
-                    method = data["method"]
-                    if method == "NotifyEvent":
-                        self._logger.debug(f"Ignoring event {data}")
-                    elif method == "NotifyStatus":
-                        if "em:0" in data["params"]:
-                            status = NotifyStatusEvent.from_dict(self._shelly.device_info, data)
-                            self._callback(status)
-                        else:
-                            self._logger.debug(f"Ignoring event {data}")
-                    else:
-                        raise RpcError(f"Unexpected event method {method} in data {data}")
-                except Exception as e:
-                    self._logger.error(f"Error processing data {data}: {e}")
-                    traceback.print_exception(e)
-        self._thread
+                self._receive_loop(websocket)
+        self._logger.info(f"Stopped thread {self._client_id} / device {self._shelly.device_name}")
 
-    def stop(self):
+    def _receive_loop(self, websocket: Connection) -> None:
+        try:
+            response = websocket.recv(RECEIVE_TIMEOUT.total_seconds())
+        except TimeoutError as e:
+            return
+        data = json.loads(response)
+        try:
+            self._process_data(data)
+        except Exception as e:
+            self._logger.error(f"Error processing data {data}: {e}")
+            traceback.print_exception(e)
+
+    def _process_data(self, data: dict[str, Any]):
+        method = data["method"]
+        if method == "NotifyEvent":
+            self._logger.debug(f"Ignoring NotifyEvent {data}")
+        elif method == "NotifyStatus":
+            if "em:0" in data["params"]:
+                status = NotifyStatusEvent.from_dict(data)
+                self._callback(self._shelly, status)
+            else:
+                self._logger.debug(f"Ignoring NotifyStatus event with missing 'em:0' param: {data}")
+        else:
+            raise RpcError(f"Unexpected event method {method} in data {data}")
+
+    def request_stop(self):
         self._running = False
-        self._logger.info(f"Waiting for thread {self._client_id} / device {self._shelly.device_name} to stop...")
+        self._logger.info(f"Sent stop signal to thread {self._client_id} / device {self._shelly.device_name}...")
+
+    def join_thread(self):
+        self._logger.info(
+            f"Waiting for thread {self._client_id} / device {self._shelly.device_name} to stop (timeout: {RECEIVE_TIMEOUT})..."
+        )
         self._thread.join()
+
+    def __enter__(self) -> "NotificationSubscription":
+        return self
+
+    def __exit__(self, _exc_type: Any, _exc_value: Any, _traceback: Any) -> None:
+        self.request_stop()
+        self.join_thread()
 
 
 def _create_dir(dir: Path) -> None:
     if not dir.exists():
         dir.mkdir(parents=True)
+
+
+def _estimated_total_size(
+    timestamp: Optional[datetime.datetime],
+    end_timestamp: Optional[datetime.datetime] = None,
+) -> Optional[float]:
+    if timestamp is None:
+        return None
+    header_size = 866
+    bytes_per_record = 334
+    end_timestamp = end_timestamp or datetime.datetime.now(tz=datetime.timezone.utc)
+    delta_minutes = (end_timestamp - timestamp).total_seconds() / 60
+    return header_size + (delta_minutes * bytes_per_record)

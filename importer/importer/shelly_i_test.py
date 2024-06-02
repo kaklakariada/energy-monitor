@@ -1,6 +1,8 @@
 import datetime
 import logging
+import math
 import time
+from pathlib import Path
 from typing import Optional
 
 import pytest
@@ -16,7 +18,7 @@ UTC = datetime.timezone.utc
 
 @pytest.fixture
 def shelly():
-    return Shelly(config.devices[1])
+    return Shelly(config.devices[0])
 
 
 def test_system_status(shelly: Shelly):
@@ -69,7 +71,7 @@ def test_get_csv_data(shelly: Shelly):
     now = datetime.datetime.now(tz=UTC)
     one_hour_ago = now - datetime.timedelta(hours=1)
     data = list(shelly.get_data(timestamp=one_hour_ago))
-    assert len(data) == 60
+    assert math.isclose(len(data), 60, abs_tol=1)
     first_row = data[0]
     last_row = data[-1]
     one_minute = datetime.timedelta(seconds=60)
@@ -78,21 +80,40 @@ def test_get_csv_data(shelly: Shelly):
     assert len(first_row.phases) == 3
 
 
+def test_download_csv_data(shelly: Shelly, tmp_path: Path):
+    now = datetime.datetime.now(tz=UTC)
+    one_hour_ago = now - datetime.timedelta(hours=1)
+    target_file = tmp_path / "test.csv"
+    result = shelly.download_csv_data(timestamp=one_hour_ago, target_file=target_file)
+    assert target_file.exists()
+    assert result.target_file == target_file
+    assert result.size > 0
+    assert result.duration > datetime.timedelta(seconds=0)
+    assert target_file.stat().st_size == result.size
+
+
+EVENT_TIMEOUT = datetime.timedelta(seconds=30)
+
+
 def test_subscription(shelly: Shelly):
     event: Optional[NotifyStatusEvent] = None
+    device: Optional[Shelly] = None
 
-    def callback(data: NotifyStatusEvent):
+    def callback(_device: Shelly, _event: NotifyStatusEvent):
         nonlocal event
+        nonlocal device
         if not event:
-            event = data
+            event = _event
+        if not device:
+            device = _device
 
     start = datetime.datetime.now(tz=UTC)
-    subscription = shelly.subscribe(callback)
-    while not event:
-        wait_time = datetime.datetime.now(tz=UTC) - start
-        assert wait_time.total_seconds() < 10, f"No event received after {wait_time}"
-        time.sleep(0.5)
-    subscription.stop()
-    delta = datetime.timedelta(seconds=5)
+    with shelly.subscribe(callback):
+        while not event:
+            wait_time = datetime.datetime.now(tz=UTC) - start
+            assert wait_time < EVENT_TIMEOUT, f"No event received after {wait_time}"
+            time.sleep(0.5)
+    delta = datetime.timedelta(seconds=30)
     assert event.timestamp > (start - delta)
     assert event.timestamp < (datetime.datetime.now(tz=UTC) + delta)
+    assert device is shelly

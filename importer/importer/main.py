@@ -15,20 +15,22 @@ from typing_extensions import Annotated
 
 from config import config
 from importer.config_model import DeviceConfig
-from importer.db import BatchWriter, DbClient
+from importer.db.influx import BatchWriter, DbClient
+from importer.logger import MAIN_LOGGER
 from importer.model import ALL_FIELD_NAMES, CsvRow, NotifyStatusEvent, RawCsvRow
 from importer.shelly import NotificationSubscription, Shelly
+from importer.shelly_multiplexer import ShellyMultiplexer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(threadName)s - %(levelname)s - %(name)s - %(message)s")
-logger = logging.getLogger("main")
+logger = MAIN_LOGGER.getChild("main")
 
 
 def _configure_logging(
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose log output")] = False
 ) -> None:
     if verbose:
-        logger.setLevel(logging.DEBUG)
-        logger.debug("Enable verbose mode")
+        MAIN_LOGGER.setLevel(logging.DEBUG)
+        MAIN_LOGGER.debug(f"Enable verbose mode for root logger '{logger.name}'")
 
 
 app = typer.Typer(no_args_is_help=True, callback=_configure_logging)
@@ -42,19 +44,11 @@ def download(
     Download CSV data to local files.
     """
     target_dir = config.data_dir
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
     start_timestamp = _get_start_timestamp(age, now)
-    for device in config.devices:
-        _download_device(device, target_dir, now, start_timestamp)
-
-
-def _download_device(
-    device: DeviceConfig, target_dir: Path, now: datetime.datetime, start_timestamp: Optional[datetime.datetime]
-) -> None:
-    shelly = Shelly(device)
-    target_file = target_dir / device.name / f"{now.isoformat()}.csv"
-    logger.info(f"Downloading from {shelly.device_name} to {target_file}...")
-    shelly.download_csv_data(timestamp=start_timestamp, end_timestamp=None, target_file=target_file)
+    results = ShellyMultiplexer(config.devices).download_csv_data(target_dir=target_dir, timestamp=start_timestamp)
+    for result in results:
+        logger.info(f"Downloaded {result.size} bytes from {result.device_name} to {result.target_file}")
 
 
 def _get_start_timestamp(age: str, now: datetime.datetime) -> Optional[datetime.datetime]:
@@ -86,41 +80,28 @@ def live():
     """
     Subscribe to live data and insert it into the database.
     """
-    db = DbClient(
+    with DbClient(
         url=config.influxdb.url,
         token=config.influxdb.token,
         org=config.influxdb.org,
         bucket=config.influxdb.bucket,
-    )
-    db.ensure_bucket_exists()
-    writer = db.batch_writer()
-    stop_event = threading.Event()
-    subscriptions: list[NotificationSubscription] = []
-    for device in config.devices:
-        subscriptions.append(_subscribe_device(device, writer))
-    try:
-        stop_event.wait()
-    except KeyboardInterrupt:
-        logger.info(f"Stopping {len(subscriptions)} subscriptions...")
-        for subscription in subscriptions:
-            subscription.stop()
-        logger.debug("Closing database connection...")
-        writer.close()
-        db.close()
+    ) as db:
+        db.ensure_bucket_exists()
+        with db.batch_writer() as writer:
 
+            def callback(_device: Shelly, data: NotifyStatusEvent):
+                logger.debug(
+                    f"Received from {_device.name}, act. power: {data.status.total_act_power}W, current: {data.status.total_current}A"
+                )
+                writer.insert_status_event(_device.name, data)
 
-def _subscribe_device(device: DeviceConfig, writer: BatchWriter) -> NotificationSubscription:
-
-    def callback(data: NotifyStatusEvent):
-        logger.debug(
-            f"Received from {device.name}, act. power: {data.status.total_act_power}W, current: {data.status.total_current}A"
-        )
-        writer.insert_status_event(device.name, data)
-
-    shelly = Shelly(device)
-    subscription = shelly.subscribe(callback)
-    logger.info(f"Subscribed to {shelly.device_name}")
-    return subscription
+            stop_event = threading.Event()
+            with ShellyMultiplexer(config.devices).subscribe(callback):
+                try:
+                    stop_event.wait()
+                except KeyboardInterrupt:
+                    logger.debug("Interrupted by user")
+    logger.info("Live data capturing stopped.")
 
 
 @app.command()
@@ -158,7 +139,7 @@ def read_csv(file: Path) -> list[CsvRow]:
         reader = csv.DictReader(csvfile)
         assert reader.fieldnames is not None
         assert set(reader.fieldnames) == ALL_FIELD_NAMES
-        rows = (CsvRow.from_raw(RawCsvRow.from_dict(row)) for row in reader)
+        rows = (CsvRow.from_dict(row) for row in reader)
         return list(rows)
 
 
