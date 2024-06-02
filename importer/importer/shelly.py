@@ -5,7 +5,7 @@ import logging
 import threading
 import traceback
 from pathlib import Path
-from typing import Any, Callable, Generator, Optional
+from typing import Any, Callable, Generator, NamedTuple, Optional
 
 import requests
 import tqdm
@@ -36,6 +36,13 @@ class RpcError(Exception):
 
 
 NotificationCallback = Callable[["Shelly", NotifyStatusEvent], None]
+
+
+class CsvDownloadResult(NamedTuple):
+    device_name: str
+    target_file: Path
+    size: int
+    duration: datetime.timedelta
 
 
 class Shelly:
@@ -115,11 +122,12 @@ class Shelly:
         timestamp: Optional[datetime.datetime],
         end_timestamp: Optional[datetime.datetime] = None,
         id: int = 0,
-    ) -> None:
+    ) -> CsvDownloadResult:
         response = self._get_data_response(timestamp=timestamp, end_timestamp=end_timestamp, id=id)
         logger.debug(f"Writing CSV data to {target_file}...")
         _create_dir(target_file.parent)
         size = 0
+        start_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
         progress_bar = tqdm.tqdm(total=_estimated_total_size(timestamp, end_timestamp), unit="iB", unit_scale=True)
         with open(target_file, "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
@@ -128,7 +136,9 @@ class Shelly:
                     progress_bar.update(byte_count)
                     size += byte_count
         progress_bar.close()
-        logger.debug(f"Wrote {size} bytes of CSV data to {target_file}")
+        duration = datetime.datetime.now(tz=datetime.timezone.utc) - start_timestamp
+        logger.debug(f"Wrote {size} bytes of CSV data to {target_file} in {duration}")
+        return CsvDownloadResult(target_file=target_file, size=size, duration=duration, device_name=self.name)
 
     def _get_data_response(
         self, timestamp: Optional[datetime.datetime], end_timestamp: Optional[datetime.datetime], id: int

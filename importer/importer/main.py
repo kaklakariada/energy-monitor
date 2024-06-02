@@ -46,17 +46,9 @@ def download(
     target_dir = config.data_dir
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     start_timestamp = _get_start_timestamp(age, now)
-    for device in config.devices:
-        _download_device(device, target_dir, now, start_timestamp)
-
-
-def _download_device(
-    device: DeviceConfig, target_dir: Path, now: datetime.datetime, start_timestamp: Optional[datetime.datetime]
-) -> None:
-    shelly = Shelly(device)
-    target_file = target_dir / device.name / f"{now.isoformat()}.csv"
-    logger.info(f"Downloading from {shelly.device_name} to {target_file}...")
-    shelly.download_csv_data(timestamp=start_timestamp, end_timestamp=None, target_file=target_file)
+    results = ShellyMultiplexer(config.devices).download_csv_data(target_dir=target_dir, timestamp=start_timestamp)
+    for result in results:
+        logger.info(f"Downloaded {result.size} bytes from {result.device_name} to {result.target_file}")
 
 
 def _get_start_timestamp(age: str, now: datetime.datetime) -> Optional[datetime.datetime]:

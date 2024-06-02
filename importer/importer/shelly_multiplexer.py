@@ -1,12 +1,25 @@
+import datetime
 import logging
-from typing import Any, Callable
+from concurrent import futures
+from pathlib import Path
+from typing import Any, NamedTuple, Optional
 
 from importer.config_model import DeviceConfig
 from importer.logger import MAIN_LOGGER
-from importer.model import NotifyStatusEvent, ShellyStatus
-from importer.shelly import NotificationCallback, NotificationSubscription, Shelly
+from importer.model import ShellyStatus
+from importer.shelly import (
+    CsvDownloadResult,
+    NotificationCallback,
+    NotificationSubscription,
+    Shelly,
+)
 
 logger = MAIN_LOGGER.getChild("shelly").getChild("multi")
+
+
+class CsvDownloadTask(NamedTuple):
+    device: Shelly
+    target_file: Path
 
 
 class ShellyMultiplexer:
@@ -18,6 +31,26 @@ class ShellyMultiplexer:
 
     def get_status(self) -> dict[str, ShellyStatus]:
         return {device.name: device.get_status() for device in self.devices}
+
+    def download_csv_data(
+        self,
+        target_dir: Path,
+        timestamp: Optional[datetime.datetime],
+        end_timestamp: Optional[datetime.datetime] = None,
+    ) -> list[CsvDownloadResult]:
+
+        def _download_one(task: CsvDownloadTask) -> CsvDownloadResult:
+            return task.device.download_csv_data(
+                target_file=task.target_file, timestamp=timestamp, end_timestamp=end_timestamp
+            )
+
+        file_name = f"{datetime.datetime.now().isoformat()}.csv"
+        tasks = [CsvDownloadTask(device, target_dir / device.name / file_name) for device in self.devices]
+        with futures.ThreadPoolExecutor(max_workers=4) as executor:
+            result = list(executor.map(_download_one, tasks))
+        for status in result:
+            logger.info(f"Downloaded {status.size} bytes from {status.device_name} to {status.target_file}")
+        return result
 
     def subscribe(self, callback: NotificationCallback) -> "MultiNotificationSubscription":
         subscription = MultiNotificationSubscription(self, callback)

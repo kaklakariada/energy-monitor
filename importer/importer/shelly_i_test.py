@@ -2,6 +2,7 @@ import datetime
 import logging
 import math
 import time
+from pathlib import Path
 from typing import Optional
 
 import pytest
@@ -77,6 +78,18 @@ def test_get_csv_data(shelly: Shelly):
     assert abs(first_row.timestamp - one_hour_ago) < one_minute
     assert abs(last_row.timestamp - now) < (2 * one_minute)
     assert len(first_row.phases) == 3
+
+
+def test_download_csv_data(shelly: Shelly, tmp_path: Path):
+    now = datetime.datetime.now(tz=UTC)
+    one_hour_ago = now - datetime.timedelta(hours=1)
+    target_file = tmp_path / "test.csv"
+    result = shelly.download_csv_data(timestamp=one_hour_ago, target_file=target_file)
+    assert target_file.exists()
+    assert result.target_file == target_file
+    assert result.size > 0
+    assert result.duration > datetime.timedelta(seconds=0)
+    assert target_file.stat().st_size == result.size
 
 
 EVENT_TIMEOUT = datetime.timedelta(seconds=30)

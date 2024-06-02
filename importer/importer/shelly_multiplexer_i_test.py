@@ -1,5 +1,6 @@
 import datetime
 import time
+from pathlib import Path
 from typing import Optional
 
 import pytest
@@ -50,3 +51,13 @@ def test_subscription(shellies: ShellyMultiplexer):
     assert event.timestamp > (start - delta)
     assert event.timestamp < (datetime.datetime.now(tz=UTC) + delta)
     assert device is not None
+
+
+def test_download_csv_data(shellies: ShellyMultiplexer, tmp_path: Path):
+    now = datetime.datetime.now(tz=UTC)
+    one_hour_ago = now - datetime.timedelta(hours=1)
+    results = shellies.download_csv_data(tmp_path, one_hour_ago)
+    assert len(results) == len(DEVICES)
+    for result in results:
+        assert result.target_file.exists()
+        assert result.target_file.stat().st_size == result.size
