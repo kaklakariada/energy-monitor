@@ -15,5 +15,8 @@
     "mypy-type-checker.cwd": "${workspaceFolder}/importer",
     "mypy-type-checker.args": [
         "--config-file=pyproject.toml"
+    ],
+    "cSpell.words": [
+        "dataframe"
     ]
 }
