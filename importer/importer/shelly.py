@@ -128,7 +128,9 @@ class Shelly:
         _create_dir(target_file.parent)
         size = 0
         start_timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
-        progress_bar = tqdm.tqdm(total=_estimated_total_size(timestamp, end_timestamp), unit="iB", unit_scale=True)
+        progress_bar = tqdm.tqdm(
+            total=_estimated_total_size(timestamp, end_timestamp), unit="iB", unit_scale=True, desc=target_file.name
+        )
         with open(target_file, "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:  # filter out keep-alive new chunks

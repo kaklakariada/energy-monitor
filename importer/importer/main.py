@@ -135,7 +135,7 @@ def read_csv_files(device_dir) -> Iterable[CsvRow]:
 
 
 def read_csv(file: Path) -> list[CsvRow]:
-    with open(file, newline="") as csvfile:
+    with open(file, newline="", encoding="UTF-8") as csvfile:
         reader = csv.DictReader(csvfile)
         assert reader.fieldnames is not None
         assert set(reader.fieldnames) == ALL_FIELD_NAMES
