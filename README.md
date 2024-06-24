@@ -1,5 +1,5 @@
 # energy-monitor
-Energy monitor
+This provides tools for downloading data from Shelly 3EM devices and analysing it.
 
 ## Initial Setup
 
