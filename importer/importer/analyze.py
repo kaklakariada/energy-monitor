@@ -35,9 +35,12 @@ def main():
     ]
     selected_columns.extend([f"{phase}_{column}" for column in phase_columns])
     df_phase = df[selected_columns]
-    df_phase.rename(columns={f"{phase}_{column}": column for column in phase_columns}, inplace=True)
+    df_phase = df_phase.rename(columns={f"{phase}_{column}": column for column in phase_columns}, inplace=False)
     df_phase.insert(1, "phase", phase)
     print(df_phase.head())
+    print(df_phase.describe())  # statistics
+    print(df_phase.iloc[0:-1, 2:-1].corr())  # correlation matrix
+    print(df_phase.info())  # data types and missing values
 
 
 def load_data(input_files: list[AnalyzedFile]) -> pd.DataFrame:
