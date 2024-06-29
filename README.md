@@ -59,3 +59,10 @@ poetry run nox -s check
 ```sh
 poetry run nox -s fix
 ```
+
+### Check for Updated Dependencies
+
+```sh
+poetry show --outdated
+```
+
