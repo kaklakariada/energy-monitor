@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pandas as pd
-from config import config
 
+from config import config
 from importer.config_model import AnalyzedFile
 
 PHASE_COLUMNS = [

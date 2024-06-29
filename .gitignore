@@ -1,5 +1,5 @@
 /.venv
-/src/importer/config.py
+/src/config.py
 /data/
 /__pycache__
 /.mypy_cache

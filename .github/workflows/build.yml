@@ -28,7 +28,7 @@ jobs:
       run: cd importer && poetry install
 
     - name: Create dummy config
-      run: cp importer/example-config.py importer/config.py
+      run: cp src/example-config.py src/config.py
 
     - name: Run checks
       run: cd importer && poetry run nox -s check

@@ -11,7 +11,6 @@ Energy monitor
 2. Copy file [`importer/example-config.py`](./importer/example-config.py) to `importer/config.py` and adapt it to your environment.
 3. Install dependencies with
     ```sh
-    cd importer
     poetry install
     ```
 
@@ -22,7 +21,6 @@ Energy monitor
 Download data from all devices in CSV format to `data_dir` configured in `config.py`:
 
 ```sh
-cd importer
 poetry run main download $AGE
 ```
 
@@ -35,7 +33,6 @@ Specify the data age as follows:
 ### Import CSV Data to InfluxDB
 
 ```sh
-cd importer
 poetry run main import-csv
 ```
 
@@ -44,7 +41,6 @@ This will import all CSV files from the data directory. The program will ignore 
 ### Import Live Data to InfluxDB
 
 ```sh
-cd importer
 poetry run main live
 ```
 

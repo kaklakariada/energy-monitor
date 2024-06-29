@@ -4,8 +4,8 @@ version = "0.1.0"
 description = "Import data from Shelly 3EM to Influxdb"
 authors = ["kaklakariada <kaklakariada@users.noreply.github.com>"]
 license = "GPL"
-readme = "../README.md"
-packages = [{ include = "importer" }]
+readme = "README.md"
+packages = [{ include = "importer", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"

@@ -3,7 +3,6 @@ import datetime
 import math
 
 from config import config
-
 from importer.model import CsvRow, NotifyStatusEvent, Phase, RawCsvRow
 
 
