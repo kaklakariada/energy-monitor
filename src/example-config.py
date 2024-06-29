@@ -15,5 +15,5 @@ config = Config(
         org="<org>",
         token="<token>",
     ),
-    files=[AnalyzedFile(device="device 1", file=Path("/data/device_1.csv"))],
+    files=[AnalyzedFile(device="device 1", path=Path("/data/device_1.csv"))],
 )

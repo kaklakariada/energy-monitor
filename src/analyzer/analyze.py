@@ -1,32 +1,54 @@
-from pathlib import Path
-
+from typing import Any, Generator, NamedTuple
 import pandas as pd
 
+from analyzer.loader import load_all_files, load_phase_data, load_single_file
 from config import config
 from importer.config_model import AnalyzedFile
 
-PHASE_COLUMNS = [
-    "total_act_energy",
-    "fund_act_energy",
-    "total_act_ret_energy",
-    "fund_act_ret_energy",
-    "lag_react_energy",
-    "lead_react_energy",
-    "max_act_power",
-    "min_act_power",
-    "max_aprt_power",
-    "min_aprt_power",
-    "max_voltage",
-    "min_voltage",
-    "avg_voltage",
-    "max_current",
-    "min_current",
-    "avg_current",
-]
+
+class DataGap(NamedTuple):
+    device: str
+    start: pd.Timestamp
+    end: pd.Timestamp
+
+    @property
+    def duration(self) -> pd.Timedelta:
+        return self.end - self.start
 
 
 def main():
-    df = load_data(config.files)
+    all_data()
+    # phase_data()
+
+
+def all_data():
+    analyze_gaps(config.files[0])
+    analyze_gaps(config.files[1])
+
+
+def analyze_gaps(file: AnalyzedFile):
+    df = load_single_file(file)
+
+    first = df.iloc[0].timestamp
+    last = df.iloc[-1].timestamp
+    print(f"Device: {file.device}, First: {first}, Last: {last}")
+    for gap in find_gaps(file.device, df):
+        print(f"- Gap: {gap.start} - {gap.end} ({gap.duration})")
+
+
+def find_gaps(device: str, df: pd.DataFrame) -> Generator[DataGap, Any, Any]:
+    sorted = df.sort_values(by="timestamp", inplace=False)
+    prev: pd.Timestamp = None
+    for index, row in sorted.iterrows():
+        if prev is not None:
+            diff = row.timestamp - prev
+            if diff.total_seconds() > 60:
+                yield DataGap(device, prev, row.timestamp)
+        prev = row.timestamp
+
+
+def phase_data():
+    df = load_all_files(config.files)
     df_phase = load_phase_data(df)
     print("Head\n" + str(df_phase.head()))
     print("Tail\n" + str(df_phase.tail()))
@@ -34,40 +56,6 @@ def main():
     print("Correlation matrix\n" + str(df_phase.iloc[0:-1, 2:-1].corr()))  # correlation matrix
     print("Info:\n")
     df_phase.info(verbose=True)
-
-
-def load_phase_data(df: pd.DataFrame) -> pd.DataFrame:
-
-    df_phases = pd.concat([extract_phase(df, phase) for phase in ["a", "b", "c"]], axis=0)
-    df_phases.reset_index(drop=True, inplace=True)
-    return df_phases
-
-
-def extract_phase(df: pd.DataFrame, phase: str) -> pd.DataFrame:
-    selected_columns = [
-        "device",
-        "timestamp",
-    ]
-    selected_columns.extend([f"{phase}_{column}" for column in PHASE_COLUMNS])
-    df_phase = df[selected_columns]
-    df_phase = df_phase.rename(columns={f"{phase}_{column}": column for column in PHASE_COLUMNS}, inplace=False)
-    df_phase.insert(1, "phase", phase)
-    return df_phase  # data types and missing values
-
-
-def load_data(input_files: list[AnalyzedFile]) -> pd.DataFrame:
-    dfs = [load_csv_dataframe(file.device, file.file) for file in input_files]
-    result = pd.concat(dfs, axis=0)
-    result.reset_index(drop=True, inplace=True)
-    print(f"Loaded data from {len(input_files)} files with {len(result)} rows.")
-    return result
-
-
-def load_csv_dataframe(device: str, file: Path) -> pd.DataFrame:
-    df = pd.read_csv(file)
-    df["timestamp"] = pd.to_datetime(df["timestamp"], origin="unix", unit="s", utc=True)
-    df.insert(0, "device", device)
-    return df
 
 
 if __name__ == "__main__":

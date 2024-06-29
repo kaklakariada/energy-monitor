@@ -17,7 +17,7 @@ class DeviceConfig(NamedTuple):
 
 class AnalyzedFile(NamedTuple):
     device: str
-    file: Path
+    path: Path
 
 
 class Config(NamedTuple):
