@@ -12,7 +12,7 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "mypy-type-checker.reportingScope": "workspace",
-    "mypy-type-checker.cwd": "${workspaceFolder}/importer",
+    "mypy-type-checker.cwd": "${workspaceFolder}",
     "mypy-type-checker.args": [
         "--config-file=pyproject.toml"
     ],
