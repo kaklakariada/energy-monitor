@@ -42,14 +42,14 @@ def check(session: nox.Session) -> None:
 
 
 @nox.session(name="test", python=False)
-def check(session: nox.Session) -> None:
+def test(session: nox.Session) -> None:
     """Runs all tests, incl. integration tests"""
     pytest = ["pytest"]
     session.run(*pytest, ".")
 
 
 @nox.session(name="utest", python=False)
-def check(session: nox.Session) -> None:
+def utest(session: nox.Session) -> None:
     """Runs all unit tests on the project"""
     pytest = ["pytest", "-m", "not shelly"]
     session.run(*pytest, ".")
