@@ -1,4 +1,7 @@
 /.venv
 /src/importer/config.py
 /data/
-__pycache__
+/__pycache__
+/.mypy_cache
+/.pytest_cache
+__pycache__/

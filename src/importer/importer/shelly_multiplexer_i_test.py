@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
-
 from config import config
+
 from importer.model import NotifyStatusEvent
 from importer.shelly import Shelly
 from importer.shelly_i_test import EVENT_TIMEOUT
