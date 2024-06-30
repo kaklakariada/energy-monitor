@@ -1,3 +1,4 @@
+import datetime
 from enum import Enum
 from typing import Any, Generator, Iterable, NamedTuple
 
@@ -49,6 +50,10 @@ class PhaseData(NamedTuple):
     phase: Phase
     df: pd.DataFrame
 
+    @property
+    def total_active_energy(self) -> pd.Series:
+        return self.df[["timestamp", "total_act_energy"]]
+
 
 class DeviceData(NamedTuple):
     device: str
@@ -86,6 +91,10 @@ class DeviceData(NamedTuple):
         )
         return PhaseData(device=self.device, phase=phase, df=df_phase)
 
+    def get_total_active_energy(self) -> pd.DataFrame:
+        data = self.df[["timestamp", "a_total_act_energy", "b_total_act_energy", "c_total_act_energy"]]
+        return data.set_index("timestamp", drop=True, append=False, inplace=False, verify_integrity=True)
+
 
 def _phase_columns(phase: Phase) -> list[str]:
     return [f"{phase.value}_{column}" for column in PHASE_COLUMNS]
@@ -107,11 +116,39 @@ class MultiDeviceData(NamedTuple):
             for gap in data.find_gaps():
                 yield gap
 
+    def get_phase_data(self, device: str, phase: Phase) -> PhaseData:
+        return self.dfs[device].get_phase_data(phase)
+
+    def _get_total_active_energy(self, device: str) -> pd.DataFrame:
+        return (
+            self.dfs[device]
+            .get_total_active_energy()
+            .rename(
+                columns={f"{phase}_total_act_energy": f"{device}_{phase}" for phase in ["a", "b", "c"]}, inplace=False
+            )
+        )
+
+    def get_total_active_energy(self) -> pd.DataFrame:
+        devices = list(self.dfs.keys())
+        result = self._get_total_active_energy(devices[0])
+        for device in devices[1:]:
+            result = result.join(
+                other=self._get_total_active_energy(device),
+                # on="timestamp",
+                how="outer",
+                lsuffix="",
+                rsuffix="",
+                validate="one_to_one",
+            )
+        columns = result.columns.tolist()
+        result["total"] = result[columns].sum(axis=1)
+        return result
+
 
 def _prepare_device_data(device: str, df: pd.DataFrame) -> pd.DataFrame:
     _validate_device_data(device, df)
     df["timestamp"] = pd.to_datetime(df["timestamp"], origin="unix", unit="s", utc=True)
-    df.insert(0, "device", device)
+    # df.insert(0, "device", device)
     return df
 
 
