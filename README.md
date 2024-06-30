@@ -66,3 +66,9 @@ poetry run nox -s fix
 poetry show --outdated
 ```
 
+### Run tests
+
+```sh
+# Show stdout & stderr and enable debug level
+pytest --capture=no -o log_cli=true -o log_cli_level=debug
+```
