@@ -44,8 +44,11 @@ class ShellyMultiplexer:
                 target_file=task.target_file, timestamp=timestamp, end_timestamp=end_timestamp
             )
 
-        file_name = f"{datetime.datetime.now().isoformat()}.csv"
-        tasks = [CsvDownloadTask(device, target_dir / device.name / file_name) for device in self.devices]
+        file_name_timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        tasks = [
+            CsvDownloadTask(device, target_dir / device.name / f"{device.name}_{file_name_timestamp}.csv")
+            for device in self.devices
+        ]
         with futures.ThreadPoolExecutor(max_workers=4) as executor:
             result = list(executor.map(_download_one, tasks))
         for status in result:
