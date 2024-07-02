@@ -29,7 +29,7 @@ def test_convert_csv_row():
         == f"em,device={DEVICE},phase=a,source=csv avg_current=1.1,avg_voltage=4.4,fund_act_energy=5.5,fund_act_ret_energy=6.6,"
         + "lag_react_energy=7.7,lead_react_energy=8.8,max_act_power=9.9,max_aprt_power=13.13,max_current=2.2,max_voltage=15.15,"
         + "min_act_power=12.12,min_aprt_power=14.14,min_current=3.3,min_voltage=16.16,total_act_energy=10.1,total_act_ret_energy=11.11 "
-        + "{UNIX_TIMESTAMP}"
+        + f"{UNIX_TIMESTAMP}"
     )
     assert (
         points[1].to_line_protocol()
@@ -69,7 +69,7 @@ def test_convert_event() -> None:
     assert (
         points[0].to_line_protocol()
         == f"em,device={DEVICE},phase=a,source=live act_power=1.1,aprt_power=2.2,"
-        + "current=3.3,freq=4.4,pf=5.5,voltage=6.6 {UNIX_TIMESTAMP}"
+        + f"current=3.3,freq=4.4,pf=5.5,voltage=6.6 {UNIX_TIMESTAMP}"
     )
     assert points[1].to_line_protocol() == f"em,device={DEVICE},phase=neutral,source=live current=1.1 {UNIX_TIMESTAMP}"
     assert (
