@@ -1,5 +1,4 @@
 import datetime
-import logging
 import math
 import time
 from pathlib import Path
@@ -16,8 +15,8 @@ pytestmark = pytest.mark.shelly
 UTC = datetime.timezone.utc
 
 
-@pytest.fixture
-def shelly():
+@pytest.fixture(name="shelly")
+def shelly_fixture():
     return Shelly(config.devices[0])
 
 

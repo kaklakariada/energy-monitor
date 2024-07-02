@@ -8,7 +8,7 @@ This provides tools for downloading data from Shelly 3EM devices and analysing i
     git clone https://github.com/kaklakariada/energy-monitor.git
     ```
 
-2. Copy file [`importer/example-config.py`](./importer/example-config.py) to `importer/config.py` and adapt it to your environment.
+2. Copy file [`importer/example_config.py`](./importer/example_config.py) to `importer/config.py` and adapt it to your environment.
 3. Install dependencies with
     ```sh
     poetry install

@@ -1,5 +1,4 @@
 import datetime
-import logging
 from concurrent import futures
 from pathlib import Path
 from typing import Any, NamedTuple, Optional
@@ -57,7 +56,7 @@ class ShellyMultiplexer:
 
     def subscribe(self, callback: NotificationCallback) -> "MultiNotificationSubscription":
         subscription = MultiNotificationSubscription(self, callback)
-        subscription._subscribe()
+        subscription.subscribe()
         return subscription
 
 
@@ -70,7 +69,7 @@ class MultiNotificationSubscription:
         self._multiplexer = multiplexer
         self._callback = callback
 
-    def _subscribe(self) -> None:
+    def subscribe(self) -> None:
         logger.debug(f"Subscribing to {len(self._multiplexer.devices)} devices...")
         self._subscriptions = [device.subscribe(self._callback) for device in self._multiplexer.devices]
 

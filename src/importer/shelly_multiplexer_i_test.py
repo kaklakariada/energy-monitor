@@ -17,8 +17,8 @@ UTC = datetime.timezone.utc
 DEVICES = config.devices
 
 
-@pytest.fixture
-def shellies():
+@pytest.fixture(name="shellies")
+def shellies_fixture():
     return ShellyMultiplexer(DEVICES)
 
 

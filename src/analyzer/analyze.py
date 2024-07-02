@@ -1,10 +1,5 @@
-import logging
-from typing import Any, Generator, NamedTuple
-
-import pandas as pd
-
 from analyzer.logger import ANALYZER_LOGGER
-from analyzer.model import MultiDeviceData, Phase
+from analyzer.model import MultiDeviceData
 from config import config
 
 logger = ANALYZER_LOGGER.getChild("analyze")

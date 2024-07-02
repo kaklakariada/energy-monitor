@@ -4,13 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from analyzer.model import (
-    DeviceData,
-    MultiDeviceData,
-    Phase,
-    _prepare_device_data,
-    _validate_device_data,
-)
+from analyzer.model import DeviceData, MultiDeviceData, Phase
 
 ALL_CSV_COLUMNS = [
     "timestamp",
@@ -88,13 +82,13 @@ PHASE_DATA_COLUMNS = [
 ]
 
 
-@pytest.fixture
-def empty_device_data() -> DeviceData:
+@pytest.fixture(name="empty_device_data")
+def empty_device_data_fixture() -> DeviceData:
     return DeviceData.load_df("device", pd.DataFrame(columns=ALL_CSV_COLUMNS))
 
 
-@pytest.fixture
-def filled_device_data() -> DeviceData:
+@pytest.fixture(name="filled_device_data")
+def filled_device_data_fixture() -> DeviceData:
     return _create_device_data("device", 5)
 
 

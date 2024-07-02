@@ -19,6 +19,10 @@ def _type_check(session: Session) -> None:
     )
 
 
+def _lint(session: Session) -> None:
+    session.run("poetry", "run", "pylint", "./src/", "./tests/")
+
+
 def _code_format(session: Session, mode: Mode) -> None:
     isort = ["poetry", "run", "isort"]
     black = ["poetry", "run", "black"]
@@ -38,6 +42,7 @@ def fix(session: Session) -> None:
 def check(session: nox.Session) -> None:
     """Runs all available checks on the project"""
     _type_check(session)
+    _lint(session)
     _code_format(session, Mode.Check)
 
 

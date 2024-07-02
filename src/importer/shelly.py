@@ -23,7 +23,6 @@ from importer.model import (
     EnergyMeterStatus,
     EnergyMeterStatusRaw,
     NotifyStatusEvent,
-    RawCsvRow,
     ShellyStatus,
     SystemStatus,
 )
@@ -96,7 +95,7 @@ class Shelly:
         return EnergyMeterRecords.from_dict(data)
 
     def get_data(
-        self, timestamp: datetime.datetime, end_timestamp: Optional[datetime.datetime] = None, id: int = 0
+        self, timestamp: datetime.datetime, end_timestamp: Optional[datetime.datetime] = None
     ) -> Generator[CsvRow, None, None]:
         """Get energy meter data from Shelly.
 
@@ -105,11 +104,10 @@ class Shelly:
                 Any record with data having timestamp between ts and end_ts will be retrieved.
             end_timestamp (datetime.datetime, optional): Timestamp of the last record to get (if available).
                 If response is too big, it will be chunked. Default is to get all available records without limit.
-            id (int, optional): Id of the EMData component instance. Defaults to 0.
         Returns:
             Generator[str, None, None]: Generator of CSV rows.
         """
-        response = self._get_data_response(timestamp, end_timestamp, id)
+        response = self._get_data_response(timestamp, end_timestamp)
         reader = csv.DictReader(response.iter_lines(decode_unicode=True))
         assert reader.fieldnames is not None
         assert set(reader.fieldnames) == ALL_FIELD_NAMES
@@ -121,9 +119,8 @@ class Shelly:
         target_file: Path,
         timestamp: Optional[datetime.datetime],
         end_timestamp: Optional[datetime.datetime] = None,
-        id: int = 0,
     ) -> CsvDownloadResult:
-        response = self._get_data_response(timestamp=timestamp, end_timestamp=end_timestamp, id=id)
+        response = self._get_data_response(timestamp=timestamp, end_timestamp=end_timestamp)
         logger.debug(f"Writing CSV data to {target_file}...")
         _create_dir(target_file.parent)
         size = 0
@@ -142,10 +139,8 @@ class Shelly:
         logger.debug(f"Wrote {size} bytes of CSV data to {target_file} in {duration}")
         return CsvDownloadResult(target_file=target_file, size=size, duration=duration, device_name=self.name)
 
-    def _get_data_response(
-        self, timestamp: Optional[datetime.datetime], end_timestamp: Optional[datetime.datetime], id: int
-    ):
-        url = f"http://{self.ip}/emdata/{id}/data.csv?add_keys=true"
+    def _get_data_response(self, timestamp: Optional[datetime.datetime], end_timestamp: Optional[datetime.datetime]):
+        url = f"http://{self.ip}/emdata/0/data.csv?add_keys=true"
         if timestamp:
             url += f"&ts={timestamp.timestamp()}"
         if end_timestamp:
@@ -166,7 +161,7 @@ class Shelly:
 
     def subscribe(self, callback: NotificationCallback) -> "NotificationSubscription":
         subscription = NotificationSubscription(self, callback)
-        subscription._subscribe()
+        subscription.subscribe()
         return subscription
 
     def __str__(self):
@@ -190,7 +185,7 @@ class NotificationSubscription:
         self._client_id = f"client-{self._shelly.name}"
         self._logger = logger.getChild(f"ws-{self._client_id}")
 
-    def _subscribe(self):
+    def subscribe(self):
         callback = self._handle_exception(self._subscribe_thread)
         self._thread = threading.Thread(target=callback, name=f"subscription-{self._client_id}")
         self._running = True
@@ -200,7 +195,7 @@ class NotificationSubscription:
         def callback():
             try:
                 func()
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self._logger.error(f"Error processing subscription: {e}")
                 traceback.print_exception(e)
 
@@ -218,12 +213,12 @@ class NotificationSubscription:
     def _receive_loop(self, websocket: Connection) -> None:
         try:
             response = websocket.recv(RECEIVE_TIMEOUT.total_seconds())
-        except TimeoutError as e:
+        except TimeoutError:
             return
         data = json.loads(response)
         try:
             self._process_data(data)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             self._logger.error(f"Error processing data {data}: {e}")
             traceback.print_exception(e)
 
@@ -258,9 +253,9 @@ class NotificationSubscription:
         self.join_thread()
 
 
-def _create_dir(dir: Path) -> None:
-    if not dir.exists():
-        dir.mkdir(parents=True)
+def _create_dir(path: Path) -> None:
+    if not path.exists():
+        path.mkdir(parents=True)
 
 
 def _estimated_total_size(

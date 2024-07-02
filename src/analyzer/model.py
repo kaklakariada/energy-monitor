@@ -1,4 +1,3 @@
-import datetime
 from enum import Enum
 from typing import Any, Generator, Iterable, NamedTuple
 
@@ -71,7 +70,7 @@ class DeviceData(NamedTuple):
 
     def find_gaps(self) -> Generator[DataGap, Any, Any]:
         prev: pd.Timestamp = None
-        for index, row in self.df.iterrows():
+        for _, row in self.df.iterrows():
             if prev is not None:
                 diff = row.timestamp - prev
                 if diff.total_seconds() > 60:
@@ -112,9 +111,8 @@ class MultiDeviceData(NamedTuple):
         return cls({d.device: d for d in data})
 
     def find_gaps(self) -> Generator[DataGap, Any, Any]:
-        for device, data in self.dfs.items():
-            for gap in data.find_gaps():
-                yield gap
+        for _, data in self.dfs.items():
+            yield from data.find_gaps()
 
     def get_phase_data(self, device: str, phase: Phase) -> PhaseData:
         return self.dfs[device].get_phase_data(phase)

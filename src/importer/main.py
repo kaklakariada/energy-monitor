@@ -1,24 +1,19 @@
-import argparse
 import csv
 import datetime
 import logging
 import re
-import sys
 import threading
-import time
-import traceback
 from pathlib import Path
-from typing import Any, Callable, Iterable, Optional
+from typing import Iterable, Optional
 
 import typer
 from typing_extensions import Annotated
 
 from config import config
-from importer.config_model import DeviceConfig
-from importer.db.influx import BatchWriter, DbClient
+from importer.db.influx import DbClient
 from importer.logger import MAIN_LOGGER
-from importer.model import ALL_FIELD_NAMES, CsvRow, NotifyStatusEvent, RawCsvRow
-from importer.shelly import NotificationSubscription, Shelly
+from importer.model import ALL_FIELD_NAMES, CsvRow, NotifyStatusEvent
+from importer.shelly import Shelly
 from importer.shelly_multiplexer import ShellyMultiplexer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(threadName)s - %(levelname)s - %(name)s - %(message)s")
@@ -68,9 +63,9 @@ def _get_age(delta: str) -> datetime.timedelta:
     amount, unit = match.groups()
     if unit == "w":
         return datetime.timedelta(weeks=int(amount))
-    elif unit == "d":
+    if unit == "d":
         return datetime.timedelta(days=int(amount))
-    elif unit == "h":
+    if unit == "h":
         return datetime.timedelta(hours=int(amount))
     raise ValueError(f"Unsupported time unit '{unit}'")
 
@@ -91,7 +86,8 @@ def live():
 
             def callback(_device: Shelly, data: NotifyStatusEvent):
                 logger.debug(
-                    f"Received from {_device.name}, act. power: {data.status.total_act_power}W, current: {data.status.total_current}A"
+                    f"Received from {_device.name}, act. power: {data.status.total_act_power}W, "
+                    + "current: {data.status.total_current}A"
                 )
                 writer.insert_status_event(_device.name, data)
 
@@ -124,7 +120,7 @@ def import_csv():
 
 def read_csv_files(device_dir) -> Iterable[CsvRow]:
     files = sorted(device_dir.glob("*.csv"))
-    unique_rows = dict()
+    unique_rows = {}
     total_rows = 0
     for file in files:
         for row in read_csv(file):
