@@ -1,6 +1,5 @@
 import datetime
 from enum import Enum
-from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
 from config import config
@@ -221,7 +220,9 @@ class EnergyMeterPhase(NamedTuple):
     freq: float
     """Network frequency measurement value"""
     errors: list[str]
-    """Error conditions occurred. May contain out_of_range:active_power, out_of_range:apparent_power, out_of_range:voltage, out_of_range:current,(shown if at least one error is present)"""
+    """
+    Error conditions occurred. May contain out_of_range:active_power, out_of_range:apparent_power,
+    out_of_range:voltage, out_of_range:current,(shown if at least one error is present)"""
 
 
 class EnergyMeterStatusRaw(NamedTuple):
@@ -240,7 +241,8 @@ class EnergyMeterStatusRaw(NamedTuple):
     a_freq: float
     """Phase A network frequency measurement value"""
     a_errors: list[str]
-    """Phase A error conditions occurred. May contain out_of_range:active_power, out_of_range:apparent_power, out_of_range:voltage, out_of_range:current,(shown if at least one error is present)"""
+    """Phase A error conditions occurred. May contain out_of_range:active_power, out_of_range:apparent_power,
+    out_of_range:voltage, out_of_range:current,(shown if at least one error is present)"""
     b_current: float
     """Phase B current measurement value, [A]"""
     b_voltage: float
@@ -254,7 +256,8 @@ class EnergyMeterStatusRaw(NamedTuple):
     b_freq: float
     """Phase B network frequency measurement value"""
     b_errors: list[str]
-    """Phase B error conditions occurred. May contain out_of_range:active_power, out_of_range:apparent_power, out_of_range:voltage, out_of_range:current,(shown if at least one error is present)"""
+    """Phase B error conditions occurred. May contain out_of_range:active_power, out_of_range:apparent_power,
+    out_of_range:voltage, out_of_range:current,(shown if at least one error is present)"""
     c_current: float
     """Phase C current measurement value, [A]"""
     c_voltage: float
@@ -268,7 +271,8 @@ class EnergyMeterStatusRaw(NamedTuple):
     c_freq: float
     """Phase C network frequency measurement value"""
     c_errors: list[str]
-    """Phase C error conditions occurred. May contain out_of_range:active_power, out_of_range:apparent_power, out_of_range:voltage, out_of_range:current,(shown if at least one error is present)"""
+    """Phase C error conditions occurred. May contain out_of_range:active_power, out_of_range:apparent_power,
+    out_of_range:voltage, out_of_range:current,(shown if at least one error is present)"""
     n_current: Optional[float]
     """Neutral current measurement value, [A] (if supported)"""
     n_errors: list[str]
@@ -282,11 +286,12 @@ class EnergyMeterStatusRaw(NamedTuple):
     user_calibrated_phase: list[Any]
     """Indicates which phase was user calibrated"""
     errors: list[str]
-    """EM component error conditions. May contain power_meter_failure or phase_sequence. Present in status only if not empty."""
+    """EM component error conditions. May contain power_meter_failure
+    or phase_sequence. Present in status only if not empty."""
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "EnergyMeterStatusRaw":
-        for error_field in {"a_errors", "b_errors", "c_errors", "n_errors", "errors"}:
+        for error_field in ["a_errors", "b_errors", "c_errors", "n_errors", "errors"]:
             if error_field not in data:
                 data[error_field] = []
         return EnergyMeterStatusRaw(**data)
@@ -310,7 +315,8 @@ class EnergyMeterStatus(NamedTuple):
     user_calibrated_phase: list[Any]
     """Indicates which phase was user calibrated"""
     errors: list[str]
-    """EM component error conditions. May contain power_meter_failure or phase_sequence. Present in status only if not empty."""
+    """EM component error conditions. May contain power_meter_failure or phase_sequence.
+    Present in status only if not empty."""
 
     @staticmethod
     def from_raw(raw_data: EnergyMeterStatusRaw) -> "EnergyMeterStatus":

@@ -15,8 +15,14 @@ class DeviceConfig(NamedTuple):
     ip: str
 
 
+class AnalyzedFile(NamedTuple):
+    device: str
+    path: Path
+
+
 class Config(NamedTuple):
     devices: list[DeviceConfig]
     data_dir: Path
     influxdb: InfluxDBConfig
     timezone: tzinfo
+    files: list[AnalyzedFile]

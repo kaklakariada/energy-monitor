@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
@@ -25,12 +25,13 @@ jobs:
         cache: poetry
         
     - name: Install dependencies
-      run: cd importer && poetry install
+      run: poetry install
 
     - name: Create dummy config
-      run: cp importer/example-config.py importer/config.py
+      run: cp src/example_config.py src/config.py
 
     - name: Run checks
-      run: cd importer && poetry run nox -s check
-    - name: Test with pytest
-      run: cd importer && poetry run pytest -m "not shelly"
+      run: poetry run nox -s check
+
+    - name: Run tests
+      run: poetry run nox -s utest

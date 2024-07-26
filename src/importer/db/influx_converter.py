@@ -1,12 +1,11 @@
 import datetime
 import itertools
-import logging
 from typing import Any, Callable, Iterable
 
 from influxdb_client import Point, WritePrecision
 
 from importer.logger import MAIN_LOGGER
-from importer.model import CsvRow, EnergyMeterPhase, NotifyStatusEvent, Phase, PhaseData
+from importer.model import CsvRow, EnergyMeterPhase, NotifyStatusEvent, PhaseData
 
 logger = MAIN_LOGGER.getChild("db").getChild("converter")
 
@@ -88,7 +87,6 @@ class PointConverter:
     def _get_converter(self, row) -> Callable[[str, Any], Iterable[Point]]:
         if isinstance(row, CsvRow):
             return csv_converter.convert
-        elif isinstance(row, NotifyStatusEvent):
+        if isinstance(row, NotifyStatusEvent):
             return event_converter.convert
-        else:
-            raise ValueError(f"Unsupported type {type(row)} {row}")
+        raise ValueError(f"Unsupported type {type(row)} {row}")

@@ -1,10 +1,9 @@
-import logging
 import time
-from typing import Generator, Iterable, Optional
+from typing import Iterable, Optional
 
 from influxdb_client import InfluxDBClient, WriteApi, WriteOptions
 from influxdb_client.client.exceptions import InfluxDBError
-from influxdb_client.client.write_api import SYNCHRONOUS, PointSettings, WriteType
+from influxdb_client.client.write_api import PointSettings, WriteType
 
 from importer.db.influx_converter import PointConverter
 from importer.logger import MAIN_LOGGER
@@ -29,7 +28,7 @@ class LoggingBatchCallback:
         self.logger.warning(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 
-converter = PointConverter()
+point_converter = PointConverter()
 
 
 class DbClient:
@@ -71,7 +70,7 @@ class DbClient:
             start_time = time.time()
             for row in rows:
                 row_count += 1
-                for point in converter.convert(device, row):
+                for point in point_converter.convert(device, row):
                     assert point is not None
                     result = write_api.write(org=self.org, bucket=self.bucket, record=point)
                     point_count += 1

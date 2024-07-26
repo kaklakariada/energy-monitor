@@ -11,8 +11,8 @@ ORG = "test-org"
 BUCKET = "test-bucket"
 
 
-@pytest.fixture(scope="module")
-def influx_container():
+@pytest.fixture(scope="module", name="influx_container")
+def influx_container_fixture():
     with InfluxDb2Container(
         init_mode="setup", username=USERNAME, password=PASSWORD, admin_token=ADMIN_TOKEN, org_name=ORG, bucket=BUCKET
     ) as influx:

@@ -4,29 +4,31 @@ version = "0.1.0"
 description = "Import data from Shelly 3EM to Influxdb"
 authors = ["kaklakariada <kaklakariada@users.noreply.github.com>"]
 license = "GPL"
-readme = "../README.md"
-packages = [{ include = "importer" }]
+readme = "README.md"
+packages = [{ include = "importer", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
 typer = "^0.12.3"
-influxdb-client = "^1.43.0"
+influxdb-client = "^1.44.0"
 requests = "^2.32.2"
 websockets = "^12.0"
 pytz = "^2024.1"
 tqdm = "^4.66.4"
+pandas = "^2.2.2"
 
 [tool.poetry.group.dev.dependencies]
 types-requests = "^2.32.0.20240523"
 types-tqdm = "^4.66.0.3"
 types-pytz = "^2024.1.0.20240417"
-types-influxdb-client = "^1.43.0.20240519"
-mypy = "^1.6.1"
+types-influxdb-client = "^1.44.0.20240626"
+mypy = "^1.10.1"
 black = "^24.3.0"
-nox = "^2023.4.22"
+nox = "^2024.4.15"
 isort = "^5.12.0"
-pytest = "^7.4.3"
-testcontainers = "^4.4.1"
+pytest = "^8.2.2"
+pylint = "^3.2.5"
+testcontainers = "^4.7.1"
 
 
 [build-system]
@@ -71,3 +73,45 @@ disallow_any_expr = false
 disallow_subclassing_any = true
 disallow_any_generics = false
 disallow_any_explicit = false
+
+[tool.pylint.main]
+fail-under = 10
+source-roots = ["src", "tests"]
+suggestion-mode = true
+
+[tool.pylint.format]
+max-line-length = 140
+
+[tool.pylint.logging]
+logging-format-style = "new"
+logging-modules = ["logging"]
+
+[tool.pylint."messages control"]
+confidence = [
+    "HIGH",
+    "CONTROL_FLOW",
+    "INFERENCE",
+    "INFERENCE_FAILURE",
+    "UNDEFINED",
+]
+
+disable = [
+    # Defaults
+    "raw-checker-failed",
+    "bad-inline-option",
+    "locally-disabled",
+    "file-ignored",
+    "suppressed-message",
+    "useless-suppression",
+    "deprecated-pragma",
+    "use-symbolic-message-instead",
+    "use-implicit-booleaness-not-comparison-to-string",
+    "use-implicit-booleaness-not-comparison-to-zero",
+    # Custom
+    "missing-function-docstring",
+    "missing-class-docstring",
+    "missing-module-docstring",
+    "logging-fstring-interpolation",
+    "too-few-public-methods",
+    "duplicate-code",
+]

@@ -8,10 +8,9 @@ This provides tools for downloading data from Shelly 3EM devices and analysing i
     git clone https://github.com/kaklakariada/energy-monitor.git
     ```
 
-2. Copy file [`importer/example-config.py`](./importer/example-config.py) to `importer/config.py` and adapt it to your environment.
+2. Copy file [`importer/example_config.py`](./importer/example_config.py) to `importer/config.py` and adapt it to your environment.
 3. Install dependencies with
     ```sh
-    cd importer
     poetry install
     ```
 
@@ -22,7 +21,6 @@ This provides tools for downloading data from Shelly 3EM devices and analysing i
 Download data from all devices in CSV format to `data_dir` configured in `config.py`:
 
 ```sh
-cd importer
 poetry run main download $AGE
 ```
 
@@ -35,7 +33,6 @@ Specify the data age as follows:
 ### Import CSV Data to InfluxDB
 
 ```sh
-cd importer
 poetry run main import-csv
 ```
 
@@ -44,7 +41,6 @@ This will import all CSV files from the data directory. The program will ignore 
 ### Import Live Data to InfluxDB
 
 ```sh
-cd importer
 poetry run main live
 ```
 
@@ -62,4 +58,17 @@ poetry run nox -s check
 
 ```sh
 poetry run nox -s fix
+```
+
+### Check for Updated Dependencies
+
+```sh
+poetry show --outdated
+```
+
+### Run tests
+
+```sh
+# Show stdout & stderr and enable debug level
+pytest --capture=no -o log_cli=true -o log_cli_level=debug
 ```

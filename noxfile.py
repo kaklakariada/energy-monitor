@@ -19,6 +19,10 @@ def _type_check(session: Session) -> None:
     )
 
 
+def _lint(session: Session) -> None:
+    session.run("poetry", "run", "pylint", "./src/", "./tests/")
+
+
 def _code_format(session: Session, mode: Mode) -> None:
     isort = ["poetry", "run", "isort"]
     black = ["poetry", "run", "black"]
@@ -38,4 +42,19 @@ def fix(session: Session) -> None:
 def check(session: nox.Session) -> None:
     """Runs all available checks on the project"""
     _type_check(session)
+    _lint(session)
     _code_format(session, Mode.Check)
+
+
+@nox.session(name="test", python=False)
+def test(session: nox.Session) -> None:
+    """Runs all tests, incl. integration tests"""
+    pytest = ["pytest"]
+    session.run(*pytest, ".")
+
+
+@nox.session(name="utest", python=False)
+def utest(session: nox.Session) -> None:
+    """Runs all unit tests on the project"""
+    pytest = ["pytest", "-m", "not shelly"]
+    session.run(*pytest, ".")

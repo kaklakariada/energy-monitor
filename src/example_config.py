@@ -1,9 +1,8 @@
-from datetime import timezone
 from pathlib import Path
 
 import pytz
 
-from importer.config_model import Config, DeviceConfig, InfluxDBConfig
+from importer.config_model import AnalyzedFile, Config, DeviceConfig, InfluxDBConfig
 
 config = Config(
     devices=[DeviceConfig(name="device 1", ip="192.168.178.10"), DeviceConfig(name="device 2", ip="192.168.178.11")],
@@ -15,4 +14,5 @@ config = Config(
         org="<org>",
         token="<token>",
     ),
+    files=[AnalyzedFile(device="device 1", path=Path("/data/device_1.csv"))],
 )
