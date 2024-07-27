@@ -12,7 +12,8 @@ _logger = POLAR_ANALYZER_LOGGER.getChild("main")
 
 def main():
     data = PolarDeviceData.load([DeviceData(Path("data/unten"), "unten"), DeviceData(Path("data/oben"), "oben")])
-    print(data.df.unpivot(on=[], index=None, variable_name=None, value_name=None))
+    df = data.total_energy(every="1d", group_by=None).collect()
+    print(df)
 
 
 if __name__ == "__main__":
