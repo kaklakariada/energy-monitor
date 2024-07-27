@@ -1,7 +1,9 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
+
 import polars as pl
-from analyzepolar.main import DeviceData, read_csv_dir, read_csvs, read_data
+
+from analyzepolar.loader import DeviceData, read_csv_dir, read_csvs, read_data
 
 
 @patch("polars.scan_csv")

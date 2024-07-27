@@ -9,8 +9,8 @@ from typing import Any, Callable, Generator, NamedTuple, Optional
 
 import requests
 import tqdm
-from websockets.sync.client import Connection
 from websockets.sync.client import connect as connect_websocket
+from websockets.sync.connection import Connection
 
 from importer.config_model import DeviceConfig
 from importer.logger import MAIN_LOGGER

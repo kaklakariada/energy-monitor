@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Generator, Iterable, NamedTuple
+from typing import Any, Generator, Iterable, NamedTuple, Optional
 
 import pandas as pd
 
@@ -50,7 +50,7 @@ class PhaseData(NamedTuple):
     df: pd.DataFrame
 
     @property
-    def total_active_energy(self) -> pd.Series:
+    def total_active_energy(self) -> pd.DataFrame:
         return self.df[["timestamp", "total_act_energy"]]
 
 
@@ -69,7 +69,7 @@ class DeviceData(NamedTuple):
         return cls(device, _prepare_device_data(device, df))
 
     def find_gaps(self) -> Generator[DataGap, Any, Any]:
-        prev: pd.Timestamp = None
+        prev: Optional[pd.Timestamp] = None
         for _, row in self.df.iterrows():
             if prev is not None:
                 diff = row.timestamp - prev

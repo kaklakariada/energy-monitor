@@ -151,7 +151,7 @@ def test_get_phase_empty_df(phase: Phase, empty_device_data: DeviceData) -> None
 
 
 @pytest.mark.parametrize("phase", Phase.__members__.values())
-def test_get_phase_filled_df(phase: str, filled_device_data: DeviceData) -> None:
+def test_get_phase_filled_df(phase: Phase, filled_device_data: DeviceData) -> None:
     data = filled_device_data.get_phase_data(phase)
     assert data.device == "device"
     assert data.phase == phase
