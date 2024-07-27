@@ -34,17 +34,25 @@ def test_load():
     ]
 
 
-def test_load_phase_data_unsupported_column():
+def test_load_phase_data_column_unsupported_column():
     data = _load(["dev1", "dev2"], 2)
     with pytest.raises(ValueError, match="Unsupported column 'unsupported'. Use one of"):
-        data.phase_data("unsupported").collect()
+        data.phase_data_column("unsupported").collect()
 
 
 @pytest.mark.parametrize(argnames="column", argvalues=PHASE_COLUMNS)
-def test_load_phase_data(column: str):
+def test_load_phase_data_column(column: str):
     data = _load(["dev1", "dev2"], 2)
-    df = data.phase_data(column).collect()
+    df = data.phase_data_column(column).collect()
     assert df.columns == ["timestamp", "device", "file", "phase", column]
+    assert len(df) == 2 * 2 * 3
+
+
+def test_load_phase_data():
+    data = _load(["dev1", "dev2"], 2)
+    df = data.phase_data.collect()
+    assert df.columns == ["timestamp", "device", "file", "phase"] + PHASE_COLUMNS
+    assert len(df) == 2 * 2 * 3
 
 
 def _load(devices: list[str], rows: int) -> PolarDeviceData:

@@ -1,11 +1,13 @@
 from dataclasses import dataclass
-from typing import NamedTuple
+from functools import reduce
+from typing import NamedTuple, Optional
 import polars as pl
 
 from analyzepolar.loader import DeviceData, read_data
 from analyzer.common import PHASE_COLUMNS, Phase
 
 _PHASE_TYPE = pl.Enum(["a", "b", "c"])
+PhaseData = tuple[str, pl.LazyFrame]
 
 
 @dataclass(frozen=True)
@@ -21,7 +23,25 @@ class PolarDeviceData:
     def df(self) -> pl.DataFrame:
         return self._df.collect()
 
-    def phase_data(self, column: str) -> pl.LazyFrame:
+    @property
+    def phase_data(self) -> pl.LazyFrame:
+
+        def merge(a: PhaseData, b: PhaseData) -> PhaseData:
+            assert b[0] != "*"
+            result = a[1].join(
+                other=b[1],
+                on=["timestamp", "device", "file", "phase"],
+                how="left",
+                validate="1:1",
+                allow_parallel=True,
+                coalesce=None,
+            )
+            return ("*", result)
+
+        dfs = [(column, self.phase_data_column(column)) for column in PHASE_COLUMNS]
+        return reduce(merge, dfs)[1]
+
+    def phase_data_column(self, column: str) -> pl.LazyFrame:
         if column not in PHASE_COLUMNS:
             raise ValueError(f"Unsupported column '{column}'. Use one of {PHASE_COLUMNS}")
         column_names = [f"{phase.value}_{column}" for phase in Phase.__members__.values()]
