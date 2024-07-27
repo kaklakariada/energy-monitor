@@ -8,7 +8,6 @@ from analyzer.common import ALL_CSV_COLUMNS, PHASE_DATA_COLUMNS
 from analyzer.model import DeviceData, MultiDeviceData, Phase
 
 
-
 @pytest.fixture(name="empty_device_data")
 def empty_device_data_fixture() -> DeviceData:
     return DeviceData.load_df("device", pd.DataFrame(columns=ALL_CSV_COLUMNS))

@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from analyzepolar.loader import DeviceData, read_data
+from analyzepolar.loader import DeviceData
 from analyzepolar.logger import POLAR_ANALYZER_LOGGER
 from analyzepolar.model import PolarDeviceData
 

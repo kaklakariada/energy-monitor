@@ -1,7 +1,8 @@
-from dataclasses import dataclass
 import datetime
+from dataclasses import dataclass
 from functools import reduce
 from typing import Optional
+
 import polars as pl
 
 from analyzepolar.loader import DeviceData, read_data

@@ -3,16 +3,16 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-import pytest
-from analyzepolar.model import PolarDeviceData, DeviceData
 import polars as pl
+import pytest
 
-from analyzer.common import ALL_CSV_COLUMNS, PHASE_COLUMNS, PHASE_DATA_COLUMNS
+from analyzepolar.model import DeviceData, PolarDeviceData
+from analyzer.common import ALL_CSV_COLUMNS, PHASE_COLUMNS
 
 
 def test_load_empty():
     with pytest.raises(ValueError, match="No devices given"):
-        PolarDeviceData.load([]).df
+        PolarDeviceData.load([])
 
 
 def test_load_single_device():

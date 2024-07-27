@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 ALL_CSV_COLUMNS = [
     "timestamp",
     "a_total_act_energy",

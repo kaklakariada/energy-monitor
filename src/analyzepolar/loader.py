@@ -1,6 +1,5 @@
 import glob
 from functools import reduce
-from multiprocessing import Value
 from pathlib import Path
 from typing import NamedTuple
 
@@ -38,7 +37,7 @@ def read_csv_dir(data: DeviceData) -> pl.LazyFrame:
 
 def read_csvs(files: list[Path], device: str) -> pl.LazyFrame:
     if not files:
-        raise ValueError(f"No input files")
+        raise ValueError("No input files")
     _logger.info(f"Reading {len(files)} files for device {device}...")
 
     def merge(a: pl.DataFrame, b: pl.DataFrame) -> pl.DataFrame:
