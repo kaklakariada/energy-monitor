@@ -58,3 +58,8 @@ def utest(session: nox.Session) -> None:
     """Runs all unit tests on the project"""
     pytest = ["pytest", "-m", "not shelly"]
     session.run(*pytest, ".")
+
+
+@nox.session(name="jupyter", python=False)
+def jupyter(session: Session) -> None:
+    session.run("poetry", "run", "jupyter", "lab", f"--notebook-dir=.", "--preferred-dir=.")
