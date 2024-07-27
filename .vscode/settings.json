@@ -8,7 +8,8 @@
     },
     "python.testing.pytestArgs": [
         "tests",
-        "--capture=no"
+        "--capture=no",
+        "-v"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
