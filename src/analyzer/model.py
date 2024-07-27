@@ -1,31 +1,12 @@
-from enum import Enum
 from typing import Any, Generator, Iterable, NamedTuple, Optional
 
 import pandas as pd
 
+from analyzer.common import PHASE_COLUMNS, Phase
 from analyzer.logger import ANALYZER_LOGGER
 from importer.config_model import AnalyzedFile
 
 LOGGER = ANALYZER_LOGGER.getChild("model")
-
-PHASE_COLUMNS = [
-    "total_act_energy",
-    "fund_act_energy",
-    "total_act_ret_energy",
-    "fund_act_ret_energy",
-    "lag_react_energy",
-    "lead_react_energy",
-    "max_act_power",
-    "min_act_power",
-    "max_aprt_power",
-    "min_aprt_power",
-    "max_voltage",
-    "min_voltage",
-    "avg_voltage",
-    "max_current",
-    "min_current",
-    "avg_current",
-]
 
 
 class DataGap(NamedTuple):
@@ -36,12 +17,6 @@ class DataGap(NamedTuple):
     @property
     def duration(self) -> pd.Timedelta:
         return self.end - self.start
-
-
-class Phase(Enum):
-    A = "a"
-    B = "b"
-    C = "c"
 
 
 class PhaseData(NamedTuple):
