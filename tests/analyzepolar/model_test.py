@@ -1,14 +1,13 @@
-from functools import reduce
 import glob
 from pathlib import Path
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from analyzepolar.model import PolarDeviceData, DeviceData
 import polars as pl
 
-from analyzer.common import ALL_CSV_COLUMNS
+from analyzer.common import ALL_CSV_COLUMNS, PHASE_COLUMNS, PHASE_DATA_COLUMNS
 
 
 def test_load_empty():
@@ -33,6 +32,19 @@ def test_load():
         ("data/dev2.csv", "dev2"),
         ("data/dev2.csv", "dev2"),
     ]
+
+
+def test_load_phase_data_unsupported_column():
+    data = _load(["dev1", "dev2"], 2)
+    with pytest.raises(ValueError, match="Unsupported column 'unsupported'. Use one of"):
+        data.phase_data("unsupported").collect()
+
+
+@pytest.mark.parametrize(argnames="column", argvalues=PHASE_COLUMNS)
+def test_load_phase_data(column: str):
+    data = _load(["dev1", "dev2"], 2)
+    df = data.phase_data(column).collect()
+    assert df.columns == ["timestamp", "device", "file", "phase", column]
 
 
 def _load(devices: list[str], rows: int) -> PolarDeviceData:

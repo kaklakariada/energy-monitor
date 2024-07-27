@@ -25,16 +25,20 @@ def read_data(devices: list[DeviceData]) -> pl.LazyFrame:
 
     _logger.debug(f"Merging data for {len(devices)} devices...")
     df = reduce(merge, (read_csv_dir(data).collect() for data in devices))
-    _logger.debug(f"Found {len(df)} rows for {len(devices)} devices...")
+    _logger.info(f"Found {len(df)} rows for {len(devices)} devices...")
     return df.lazy()
 
 
 def read_csv_dir(data: DeviceData) -> pl.LazyFrame:
     csv_files = [Path(file) for file in glob.glob(glob.escape(str(data.data_dir)) + "/*.csv")]
+    if not csv_files:
+        raise ValueError(f"Data dir {data.data_dir.absolute()} does not contain CSV files")
     return read_csvs(csv_files, data.device)
 
 
 def read_csvs(files: list[Path], device: str) -> pl.LazyFrame:
+    if not files:
+        raise ValueError(f"No input files")
     _logger.info(f"Reading {len(files)} files for device {device}...")
 
     def merge(a: pl.DataFrame, b: pl.DataFrame) -> pl.DataFrame:
