@@ -1,11 +1,11 @@
 import datetime
 from dataclasses import dataclass
 from functools import reduce
-from typing import Optional
+from typing import Generator, Optional
 
 import polars as pl
 
-from analyzepolar.loader import DeviceData, read_data
+from analyzepolar.loader import DataGap, DeviceDataSource, SingleDeviceData, read_data
 from analyzer.common import PHASE_COLUMNS, Phase
 
 _PHASE_TYPE = pl.Enum(["a", "b", "c"])
@@ -15,12 +15,18 @@ PhaseData = tuple[str, pl.LazyFrame]
 @dataclass(frozen=False)
 class PolarDeviceData:
     _df: pl.LazyFrame
+    _device_data: list[SingleDeviceData]
     _collected: Optional[pl.DataFrame] = None
 
     @classmethod
-    def load(cls, devices: list[DeviceData]) -> "PolarDeviceData":
-        df = read_data(devices)
-        return cls(df)
+    def load(cls, devices: list[DeviceDataSource]) -> "PolarDeviceData":
+        data = read_data(devices)
+        return cls(data.df, data.devices)
+
+    @property
+    def gaps(self) -> Generator[DataGap, None, None]:
+        for device in self._device_data:
+            yield from device.find_gaps()
 
     @property
     def df(self) -> pl.DataFrame:

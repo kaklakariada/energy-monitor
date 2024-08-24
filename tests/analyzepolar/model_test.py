@@ -6,7 +6,7 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 
-from analyzepolar.model import DeviceData, PolarDeviceData
+from analyzepolar.model import DeviceDataSource, PolarDeviceData
 from analyzer.common import ALL_CSV_COLUMNS, PHASE_COLUMNS
 
 
@@ -32,6 +32,11 @@ def test_load():
         ("data/dev2.csv", "dev2"),
         ("data/dev2.csv", "dev2"),
     ]
+
+
+def test_find_gaps():
+    data = _load(["dev1", "dev2"], 2)
+    assert len(list(data.gaps)) == 0
 
 
 def test_load_phase_data_column_unsupported_column():
@@ -60,7 +65,7 @@ def _load(devices: list[str], rows: int) -> PolarDeviceData:
         with patch.object(target=glob, attribute="glob") as glob_mock:
             glob_mock.side_effect = [[f"data/{device}.csv"] for device in devices]
             scan_csv_mock.side_effect = [_generate_csv_data_device(device, rows) for device in devices]
-            device_data = [DeviceData(Path(f"data/{device}"), device) for device in devices]
+            device_data = [DeviceDataSource(Path(f"data/{device}"), device) for device in devices]
             return PolarDeviceData.load(device_data)
 
 

@@ -3,7 +3,12 @@ from unittest.mock import Mock, patch
 
 import polars as pl
 
-from analyzepolar.loader import DeviceData, read_csv_dir, read_csvs, read_data
+from analyzepolar.loader import (
+    DeviceDataSource,
+    read_csv_dir,
+    read_csv_files,
+    read_data,
+)
 
 
 @patch("polars.scan_csv")
@@ -12,7 +17,7 @@ def test_read_csvs_merge(scan_csv_mock: Mock):
         pl.LazyFrame({"timestamp": [0, 60, 120], "value": [1, 2, 3]}),
         pl.LazyFrame({"timestamp": [120, 180], "value": [4, 5]}),
     ]
-    df = read_csvs([Path("file1"), Path("file2")], "device1").collect()
+    df = read_csv_files([Path("file1"), Path("file2")], "device1").df
     assert df.columns == ["timestamp", "value", "device", "file"]
     assert df.dtypes == [pl.Datetime(time_zone="UTC"), pl.Int64, pl.String, pl.String]
     assert len(df) == 4
@@ -28,7 +33,7 @@ def test_read_csv_dir(glob_mock: Mock, scan_csv_mock: Mock):
         pl.LazyFrame({"timestamp": [120, 180], "value": [4, 5]}),
     ]
     glob_mock.return_value = ["file1", "file2"]
-    df = read_csv_dir(DeviceData(Path("dir"), "device1")).collect()
+    df = read_csv_dir(DeviceDataSource(Path("dir"), "device1")).df
     assert df.columns == ["timestamp", "value", "device", "file"]
     assert df.dtypes == [pl.Datetime(time_zone="UTC"), pl.Int64, pl.String, pl.String]
     assert len(df) == 4
@@ -44,7 +49,7 @@ def test_read_data(glob_mock: Mock, scan_csv_mock: Mock):
         pl.LazyFrame({"timestamp": [120, 180], "value": [4, 5]}),
     ]
     glob_mock.side_effect = [["dev1/file"], ["dev2/file"]]
-    df = read_data([DeviceData(Path("dir1"), "device1"), DeviceData(Path("dir2"), "device2")]).collect()
+    df = read_data([DeviceDataSource(Path("dir1"), "device1"), DeviceDataSource(Path("dir2"), "device2")]).df.collect()
     assert df.columns == ["timestamp", "value", "device", "file"]
     assert df.dtypes == [pl.Datetime(time_zone="UTC"), pl.Int64, pl.String, pl.String]
     assert len(df) == 5
