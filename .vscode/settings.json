@@ -7,7 +7,9 @@
         "source.fixAll": "explicit"
     },
     "python.testing.pytestArgs": [
-        "tests"
+        "tests",
+        "--capture=no",
+        "-vv"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,

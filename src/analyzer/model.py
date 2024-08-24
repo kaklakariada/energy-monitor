@@ -1,31 +1,12 @@
-from enum import Enum
-from typing import Any, Generator, Iterable, NamedTuple
+from typing import Any, Generator, Iterable, NamedTuple, Optional
 
 import pandas as pd
 
+from analyzer.common import PHASE_COLUMNS, Phase
 from analyzer.logger import ANALYZER_LOGGER
 from importer.config_model import AnalyzedFile
 
 LOGGER = ANALYZER_LOGGER.getChild("model")
-
-PHASE_COLUMNS = [
-    "total_act_energy",
-    "fund_act_energy",
-    "total_act_ret_energy",
-    "fund_act_ret_energy",
-    "lag_react_energy",
-    "lead_react_energy",
-    "max_act_power",
-    "min_act_power",
-    "max_aprt_power",
-    "min_aprt_power",
-    "max_voltage",
-    "min_voltage",
-    "avg_voltage",
-    "max_current",
-    "min_current",
-    "avg_current",
-]
 
 
 class DataGap(NamedTuple):
@@ -38,19 +19,13 @@ class DataGap(NamedTuple):
         return self.end - self.start
 
 
-class Phase(Enum):
-    A = "a"
-    B = "b"
-    C = "c"
-
-
 class PhaseData(NamedTuple):
     device: str
     phase: Phase
     df: pd.DataFrame
 
     @property
-    def total_active_energy(self) -> pd.Series:
+    def total_active_energy(self) -> pd.DataFrame:
         return self.df[["timestamp", "total_act_energy"]]
 
 
@@ -69,7 +44,7 @@ class DeviceData(NamedTuple):
         return cls(device, _prepare_device_data(device, df))
 
     def find_gaps(self) -> Generator[DataGap, Any, Any]:
-        prev: pd.Timestamp = None
+        prev: Optional[pd.Timestamp] = None
         for _, row in self.df.iterrows():
             if prev is not None:
                 diff = row.timestamp - prev

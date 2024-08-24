@@ -11,21 +11,16 @@ class Mode(Enum):
 
 
 def _type_check(session: Session) -> None:
-    session.run(
-        "poetry",
-        "run",
-        "mypy",
-        ".",
-    )
+    session.run("mypy", ".")
 
 
 def _lint(session: Session) -> None:
-    session.run("poetry", "run", "pylint", "./src/", "./tests/")
+    session.run("pylint", "./src/", "./tests/")
 
 
 def _code_format(session: Session, mode: Mode) -> None:
-    isort = ["poetry", "run", "isort"]
-    black = ["poetry", "run", "black"]
+    isort = ["isort"]
+    black = ["black"]
     isort = isort if mode == Mode.Fix else isort + ["--check"]
     black = black if mode == Mode.Fix else black + ["--check"]
     session.run(*isort, ".")
@@ -58,3 +53,8 @@ def utest(session: nox.Session) -> None:
     """Runs all unit tests on the project"""
     pytest = ["pytest", "-m", "not shelly"]
     session.run(*pytest, ".")
+
+
+@nox.session(name="jupyter", python=False)
+def jupyter(session: Session) -> None:
+    session.run("jupyter", "lab", f"--notebook-dir=.", "--preferred-dir=.")
