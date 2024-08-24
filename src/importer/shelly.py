@@ -152,7 +152,7 @@ class Shelly:
     def _rpc_call(self, method: str, params: dict[str, Any]):
         data = json.dumps({"id": 1, "method": method, "params": params})
         logger.debug(f"Sending POST with data {data} to {self.rpc_url}")
-        response = requests.post(self.rpc_url, data=data, headers={"Content-Type": "application/json"}, timeout=3)
+        response = requests.post(self.rpc_url, data=data, headers={"Content-Type": "application/json"}, timeout=10)
         response.raise_for_status()
         json_data = response.json()
         if "error" in json_data:
