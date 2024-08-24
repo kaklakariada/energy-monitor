@@ -67,7 +67,7 @@ class PolarDeviceData:
     def total_energy(
         self,
         every: str | datetime.timedelta,
-        group_by: Optional[list[str]] = ["device", "phase"],
+        group_by: Optional[tuple[str, ...]] = ("device", "phase"),
         start_by: pl._typing.StartBy = "window",
     ) -> pl.LazyFrame:
         df = self.phase_data_column("total_act_energy")
