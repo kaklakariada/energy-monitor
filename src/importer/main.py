@@ -57,6 +57,8 @@ def _get_start_timestamp(age: str, now: datetime.datetime) -> Optional[datetime.
 
 
 def _get_age(delta: str) -> datetime.timedelta:
+    if delta.lower() == "max":
+        return datetime.timedelta(days=60, hours=12)
     match = re.match(r"(\d+)([wdh])", delta.lower())
     if match is None:
         raise ValueError(f"Invalid time delta format: '{delta}'")

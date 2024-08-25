@@ -5,7 +5,13 @@ from typing import Generator, Optional
 
 import polars as pl
 
-from analyzepolar.loader import DataGap, DeviceDataSource, SingleDeviceData, read_data
+from analyzepolar.loader import (
+    DataGap,
+    DeviceDataSource,
+    MultiDeviceStatistics,
+    SingleDeviceData,
+    read_data,
+)
 from analyzer.common import PHASE_COLUMNS, Phase
 
 _PHASE_TYPE = pl.Enum(["a", "b", "c"])
@@ -27,6 +33,10 @@ class PolarDeviceData:
     def gaps(self) -> Generator[DataGap, None, None]:
         for device in self._device_data:
             yield from device.find_gaps()
+
+    @property
+    def statistics(self):
+        return MultiDeviceStatistics.create(self._device_data)
 
     @property
     def df(self) -> pl.DataFrame:

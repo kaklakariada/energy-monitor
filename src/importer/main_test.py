@@ -12,6 +12,8 @@ NOW = datetime.fromisoformat("2024-05-19T17:43:59")
     [
         ("all", None),
         ("ALL", None),
+        ("max", NOW - timedelta(days=60, hours=12)),
+        ("MAX", NOW - timedelta(days=60, hours=12)),
         ("3w", NOW - timedelta(weeks=3)),
         ("1d", NOW - timedelta(days=1)),
         ("2h", NOW - timedelta(hours=2)),
