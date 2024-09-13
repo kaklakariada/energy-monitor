@@ -32,8 +32,9 @@ pytest = "^8.2.2"
 pylint = "^3.2.5"
 testcontainers = "^4.8.0"
 jupyterlab = "^4.2.4"
-jedi-language-server = "^0.41.4"                      # for jupyter
 pyarrow = "^17.0.0"                                   # data analysis
+jedi-language-server = "^0.41.4"                      # for jupyter
+pip = "^24.2"
 
 
 [build-system]
