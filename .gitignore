@@ -1,5 +1,6 @@
 /.venv
 /src/config.py
+/src/prohka/config.py
 /data/
 /__pycache__
 /.mypy_cache
