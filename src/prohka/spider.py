@@ -1,17 +1,18 @@
-from typing import Optional
-from attr import dataclass
 import json
+from typing import Optional
+
 import scrapy
 import scrapy.http
-from scrapy.http.response.text import TextResponse
+from attr import dataclass
 from scrapy.crawler import CrawlerProcess
+from scrapy.http.response.text import TextResponse
 from scrapy.settings import Settings
 from scrapy.utils.log import configure_logging
 
-import prohka.config as config
+from prohka import config
 
 
-class ProHKASpider(scrapy.Spider):  # type: ignore # Class cannot subclass "Spider" (has type "Any")
+class ProHKASpider(scrapy.Spider):  # type: ignore # Class cannot subclass "Spider" (has type "Any")  # pylint: disable=abstract-method
 
     def __init__(self, base_url: str, email: str, code: str):
         super().__init__(name="ProHKA", start_urls=[])
@@ -74,7 +75,7 @@ class ConsumptionData:
 def main():
     configure_logging({"LOG_FORMAT": "%(levelname)s: %(message)s"})
     process = CrawlerProcess(settings=Settings(values={"DOWNLOAD_DELAY": 0.1}), install_root_handler=True)
-    process.crawl(ProHKASpider, base_url=config.base_url, email=config.email, code=config.code)
+    process.crawl(ProHKASpider, base_url=config.BASE_URL, email=config.EMAIL, code=config.CODE)
     process.start()
 
 
