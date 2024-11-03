@@ -11,7 +11,7 @@ from scrapy.utils.log import configure_logging
 import prohka.config as config
 
 
-class ProHKASpider(scrapy.Spider):
+class ProHKASpider(scrapy.Spider):  # type: ignore # Class cannot subclass "Spider" (has type "Any")
 
     def __init__(self, base_url: str, email: str, code: str):
         super().__init__(name="ProHKA", start_urls=[])

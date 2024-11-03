@@ -1,3 +1,4 @@
+# type: ignore # Plot arguments are not typed
 import datetime
 from dataclasses import dataclass
 from functools import reduce
