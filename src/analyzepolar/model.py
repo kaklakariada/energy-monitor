@@ -1,3 +1,4 @@
+# type: ignore # Plot arguments are not typed
 import datetime
 from dataclasses import dataclass
 from functools import reduce
@@ -5,10 +6,17 @@ from typing import Generator, Optional
 
 import polars as pl
 
-from analyzepolar.loader import DataGap, DeviceDataSource, SingleDeviceData, read_data
+from analyzepolar.loader import (
+    DataGap,
+    DeviceDataSource,
+    MultiDeviceStatistics,
+    SingleDeviceData,
+    read_data,
+)
 from analyzer.common import PHASE_COLUMNS, Phase
 
 _PHASE_TYPE = pl.Enum(["a", "b", "c"])
+_DAY_OF_WEEK = pl.Enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
 PhaseData = tuple[str, pl.LazyFrame]
 
 
@@ -27,6 +35,10 @@ class PolarDeviceData:
     def gaps(self) -> Generator[DataGap, None, None]:
         for device in self._device_data:
             yield from device.find_gaps()
+
+    @property
+    def statistics(self) -> MultiDeviceStatistics:
+        return MultiDeviceStatistics.create(self._device_data)
 
     @property
     def df(self) -> pl.DataFrame:
@@ -88,6 +100,17 @@ class PolarDeviceData:
 
     def daily_total_energy(self) -> pl.LazyFrame:
         return self.total_energy(every="1d")
+
+    def total_energy_by_day_of_week(self) -> pl.LazyFrame:
+        df = self.daily_total_energy().with_columns(pl.col("date").dt.weekday().alias("day_of_week"))
+        df = df.group_by("day_of_week", "device", "phase").agg(pl.col("total_act_energy").mean())
+        df = df.sort("day_of_week").with_columns(
+            pl.col("day_of_week")
+            .replace_strict(list(range(1, 8)), _DAY_OF_WEEK.categories.to_list())
+            .cast(dtype=_DAY_OF_WEEK, strict=True)
+            .alias("day_of_week")
+        )
+        return df
 
     def plot_all(self, column: str):
         df = self.phase_data

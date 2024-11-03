@@ -30,6 +30,14 @@ jobs:
     - name: Create dummy config
       run: cp src/example_config.py src/config.py
 
+    - name: Create dummy config for spider
+      run: |
+        cat > src/prohka/config.py <<EOL
+        EMAIL = "dummy@example.com"
+        CODE = "my-secret-code"
+        BASE_URL = "https://example.com"
+        EOL
+
     - name: Run checks
       run: poetry run nox -s check
 
