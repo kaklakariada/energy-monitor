@@ -30,7 +30,7 @@ jobs:
     - name: Create dummy config
       run: cp src/example_config.py src/config.py
 
-    - name: Enable testcontainer reuse,
+    - name: Create dummy config for spider
       run: |
         cat > src/prohka/config.py <<EOL
         EMAIL = "dummy@example.com"
