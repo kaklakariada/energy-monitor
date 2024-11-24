@@ -144,7 +144,10 @@ def load_csv(file: Path, device: str) -> pl.DataFrame:
         pl.from_epoch(column=pl.col("timestamp"), time_unit="s").alias("timestamp"),
     )
     df = df.with_columns(pl.col("timestamp").dt.replace_time_zone("UTC"))
-    data = df.collect()
+    try:
+        data = df.collect()
+    except pl.exceptions.PolarsError as e:
+        raise ValueError(f"Error loading data for device {device} from {file}") from e
     first_timestamp = data["timestamp"].min()
     last_timestamp = data["timestamp"].max()
     if not isinstance(first_timestamp, datetime.datetime) or not isinstance(last_timestamp, datetime.datetime):
