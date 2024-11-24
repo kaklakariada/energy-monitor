@@ -1,11 +1,9 @@
-# type: ignore # Plot arguments are not typed
 import datetime
 from dataclasses import dataclass
 from functools import reduce
 from typing import Generator, Optional
 
 import polars as pl
-import altair as alt
 
 from analyze.common import PHASE_COLUMNS, Phase
 from analyze.loader import (
@@ -115,52 +113,3 @@ class PolarDeviceData:
             .alias("day_of_week")
         )
         return df
-
-    def plot_all(self, column: str):
-        df = self.phase_data
-        return df.collect().plot.line(
-            x=alt.X("timestamp", type="temporal").title("Time"),
-            y=alt.Y(column, type="quantitative").title(column),
-            by=["device", "phase"],
-            autorange=None,
-            grid=True,
-            hover=True,
-            responsive=False,
-            title=f"{column} over time for all devices and phases",
-            sort_date=True,
-        )
-
-    def plot(self, column: str, phase: Phase, device: str):
-        df = self.phase_data
-        df = df.filter((pl.col("device").eq(device) & pl.col("phase").eq(phase.value)))
-        return df.collect().plot.line(
-            x=alt.X("timestamp", type="temporal").title("Time"),
-            y=alt.Y(column, type="quantitative").title(column),
-            autorange=None,
-            grid=True,
-            hover=True,
-            responsive=False,
-            title=f"{column} over time for device '{device}' and phase {phase.name}",
-            sort_date=True,
-            # downsample=True,
-        )
-
-    def plot_total_energy(
-        self, every: str | datetime.timedelta, device: Optional[str] = None, phase: Optional[Phase] = None
-    ):
-        df = self.total_energy(every=every)
-        title = f"Total energy every {every} for each device and phase"
-        if device is not None and phase is not None:
-            df = df.filter((pl.col("device").eq(device) & pl.col("phase").eq(phase.value)))
-            title = f"Total energy every {every} for device '{device}' and phase {phase.name}"
-        return df.collect().plot.bar(
-            x=alt.X("timestamp", type="temporal").title("Time"),
-            y=alt.Y("total_act_energy", type="quantitative").title("Total energy"),
-            autorange=None,
-            grid=True,
-            hover=True,
-            responsive=False,
-            title=title,
-            sort_date=True,
-            # downsample=True,
-        )
