@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "energy-monitor-importer"
+name = "energy-monitor"
 version = "0.1.0"
-description = "Import data from Shelly 3EM to Influxdb"
+description = "Analyze data from Shelly 3EM"
 authors = ["kaklakariada <kaklakariada@users.noreply.github.com>"]
 license = "GPL"
 readme = "README.md"
@@ -16,7 +16,6 @@ scrapy = "^2.11.2"
 websockets = "^13.0"
 pytz = "^2024.1"
 tqdm = "^4.66.4"
-pandas = "^2.2.2"
 polars = { extras = ["plot"], version = "^1.5.0" }
 
 
