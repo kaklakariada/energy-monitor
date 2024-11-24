@@ -3,12 +3,7 @@ from unittest.mock import Mock, patch
 
 import polars as pl
 
-from analyzepolar.loader import (
-    DeviceDataSource,
-    read_csv_dir,
-    read_csv_files,
-    read_data,
-)
+from analyze.loader import DeviceDataSource, read_csv_dir, read_csv_files, read_data
 
 
 @patch("polars.scan_csv")

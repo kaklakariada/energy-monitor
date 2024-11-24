@@ -6,14 +6,14 @@ from typing import Generator, Optional
 
 import polars as pl
 
-from analyzepolar.loader import (
+from analyze.common import PHASE_COLUMNS, Phase
+from analyze.loader import (
     DataGap,
     DeviceDataSource,
     MultiDeviceStatistics,
     SingleDeviceData,
     read_data,
 )
-from analyzer.common import PHASE_COLUMNS, Phase
 
 _PHASE_TYPE = pl.Enum(["a", "b", "c"])
 _DAY_OF_WEEK = pl.Enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
