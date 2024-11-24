@@ -1,9 +1,8 @@
 import logging
-from pathlib import Path
 
-from analyzepolar.loader import DeviceDataSource
-from analyzepolar.logger import POLAR_ANALYZER_LOGGER
-from analyzepolar.model import PolarDeviceData
+from analyze.loader import DeviceDataSource
+from analyze.logger import POLAR_ANALYZER_LOGGER
+from analyze.model import PolarDeviceData
 from config import config
 
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)s - %(message)s")

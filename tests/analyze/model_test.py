@@ -6,8 +6,9 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 
-from analyzepolar.model import DeviceDataSource, PolarDeviceData
-from analyzer.common import ALL_CSV_COLUMNS, PHASE_COLUMNS
+from analyze.loader import DeviceDataSource
+from analyze.model import PolarDeviceData
+from analyze.common import ALL_CSV_COLUMNS, PHASE_COLUMNS
 
 
 def test_load_empty():

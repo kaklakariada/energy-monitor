@@ -6,7 +6,7 @@ from typing import Any, Generator, NamedTuple, Optional
 
 import polars as pl
 
-from analyzepolar.logger import POLAR_ANALYZER_LOGGER
+from analyze.logger import POLAR_ANALYZER_LOGGER
 from util import format_local_timestamp
 
 _logger = POLAR_ANALYZER_LOGGER.getChild("loader")
