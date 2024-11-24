@@ -108,7 +108,7 @@ def read_data(devices: list[DeviceDataSource]) -> MultiDeviceData:
     _logger.debug(f"Merging data for {len(devices)} devices...")
     all_data = [read_csv_dir(data) for data in devices]
     df = reduce(merge, (data.df for data in all_data))
-    _logger.info(f"Found {len(df)} rows for {len(devices)} devices...")
+    _logger.info(f"Found {len(df)} rows for {len(devices)} devices.")
     return MultiDeviceData(devices=all_data, df=df.lazy())
 
 

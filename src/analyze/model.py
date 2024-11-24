@@ -5,6 +5,7 @@ from functools import reduce
 from typing import Generator, Optional
 
 import polars as pl
+import altair as alt
 
 from analyze.common import PHASE_COLUMNS, Phase
 from analyze.loader import (
@@ -96,16 +97,19 @@ class PolarDeviceData:
             index_column="timestamp", every=every, period=None, group_by=group_by, start_by=start_by
         ).agg(pl.sum("total_act_energy"))
         df = df.with_columns(pl.col("timestamp").dt.date().alias("date"))
+        df = df.with_columns(pl.col("total_act_energy").mul(0.001).alias("total_act_energy_kwh"))
+        df = df.drop("total_act_energy")
+        df = df.drop("timestamp")
         return df
 
     def daily_total_energy(self) -> pl.LazyFrame:
         return self.total_energy(every="1d")
 
     def total_energy_by_day_of_week(self) -> pl.LazyFrame:
-        df = self.daily_total_energy().with_columns(pl.col("date").dt.weekday().alias("day_of_week"))
-        df = df.group_by("day_of_week", "device", "phase").agg(pl.col("total_act_energy").mean())
-        df = df.sort("day_of_week").with_columns(
-            pl.col("day_of_week")
+        df = self.daily_total_energy().with_columns(pl.col("date").dt.weekday().alias("day_of_week_num"))
+        df = df.group_by("day_of_week_num", "device", "phase").agg(pl.col("total_act_energy_kwh").mean())
+        df = df.sort("day_of_week_num").with_columns(
+            pl.col("day_of_week_num")
             .replace_strict(list(range(1, 8)), _DAY_OF_WEEK.categories.to_list())
             .cast(dtype=_DAY_OF_WEEK, strict=True)
             .alias("day_of_week")
@@ -115,35 +119,30 @@ class PolarDeviceData:
     def plot_all(self, column: str):
         df = self.phase_data
         return df.collect().plot.line(
-            x="timestamp",
-            y=column,
+            x=alt.X("timestamp", type="temporal").title("Time"),
+            y=alt.Y(column, type="quantitative").title(column),
             by=["device", "phase"],
             autorange=None,
             grid=True,
             hover=True,
             responsive=False,
             title=f"{column} over time for all devices and phases",
-            xlabel="Timestamp",
-            ylabel=column,
             sort_date=True,
-            downsample=True,
         )
 
     def plot(self, column: str, phase: Phase, device: str):
         df = self.phase_data
         df = df.filter((pl.col("device").eq(device) & pl.col("phase").eq(phase.value)))
         return df.collect().plot.line(
-            x="timestamp",
-            y=column,
+            x=alt.X("timestamp", type="temporal").title("Time"),
+            y=alt.Y(column, type="quantitative").title(column),
             autorange=None,
             grid=True,
             hover=True,
             responsive=False,
             title=f"{column} over time for device '{device}' and phase {phase.name}",
-            xlabel="Timestamp",
-            ylabel=column,
             sort_date=True,
-            downsample=True,
+            # downsample=True,
         )
 
     def plot_total_energy(
@@ -155,15 +154,13 @@ class PolarDeviceData:
             df = df.filter((pl.col("device").eq(device) & pl.col("phase").eq(phase.value)))
             title = f"Total energy every {every} for device '{device}' and phase {phase.name}"
         return df.collect().plot.bar(
-            x="timestamp",
-            y="total_act_energy",
+            x=alt.X("timestamp", type="temporal").title("Time"),
+            y=alt.Y("total_act_energy", type="quantitative").title("Total energy"),
             autorange=None,
             grid=True,
             hover=True,
             responsive=False,
             title=title,
-            xlabel="Timestamp",
-            ylabel="Total energy",
             sort_date=True,
-            downsample=True,
+            # downsample=True,
         )

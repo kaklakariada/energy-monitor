@@ -72,3 +72,8 @@ poetry show --outdated
 # Show stdout & stderr and enable debug level
 pytest --capture=no -o log_cli=true -o log_cli_level=debug
 ```
+### Run Jupyter Notebook
+
+```sh
+poetry run nox -s jupyter
+```
