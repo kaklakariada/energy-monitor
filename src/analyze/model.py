@@ -6,10 +6,9 @@ from typing import Generator, Optional
 import polars as pl
 
 from analyze.common import PHASE_COLUMNS, Phase
+from analyze.data import DataGap, MultiDeviceStatistics
 from analyze.loader import (
-    DataGap,
     DeviceDataSource,
-    MultiDeviceStatistics,
     SingleDeviceData,
     read_data,
 )
