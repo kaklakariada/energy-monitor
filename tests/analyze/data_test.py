@@ -1,10 +1,14 @@
 import datetime
+import logging
 from pathlib import Path
 from tokenize import Single
 
 import pytest
 from analyze.loader import SingleDeviceData, SingleFileData
 import polars as pl
+from analyze.data import _logger
+
+_logger.setLevel(logging.DEBUG)
 
 TS1 = datetime.datetime(year=2024, month=10, day=1)
 TS2 = datetime.datetime(year=2024, month=10, day=2)
