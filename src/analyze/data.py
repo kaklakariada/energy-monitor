@@ -33,7 +33,10 @@ class SingleFileData(NamedTuple):
     last_timestamp: datetime.datetime
 
     def __str__(self):
-        return f"Device '{self.device}' / {self.file}: {self.first_timestamp} .. {self.last_timestamp}"
+        return f"Device '{self.device}' / {self.file}: {self.first_timestamp} .. {self.last_timestamp} ({len(self.df)} rows)"
+
+    def __repr__(self):
+        return str(self)
 
 
 class SingleDeviceData(NamedTuple):
@@ -58,12 +61,16 @@ class SingleDeviceData(NamedTuple):
     def statistics(self) -> "SingleDeviceStatistics":
         return SingleDeviceStatistics.create(self)
 
-    def find_duplicate_files(self):
+    def find_duplicate_files(self) -> list[SingleFileData]:
         if len(self.file_data) == 0:
             raise ValueError("No files")
 
         def by_timestamps(f: SingleFileData):
-            return (f.first_timestamp, -len(f.df))
+            return (
+                f.first_timestamp,
+                -len(f.df),
+                f.file,
+            )
 
         sorted_files = sorted(
             self.file_data,
