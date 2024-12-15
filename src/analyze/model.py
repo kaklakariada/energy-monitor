@@ -7,11 +7,7 @@ import polars as pl
 
 from analyze.common import PHASE_COLUMNS, Phase
 from analyze.data import DataGap, MultiDeviceStatistics
-from analyze.loader import (
-    DeviceDataSource,
-    SingleDeviceData,
-    read_data,
-)
+from analyze.loader import DeviceDataSource, SingleDeviceData, read_data
 
 _PHASE_TYPE = pl.Enum(["a", "b", "c"])
 _DAY_OF_WEEK = pl.Enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])

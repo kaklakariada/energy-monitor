@@ -1,12 +1,12 @@
 import datetime
 import logging
 from pathlib import Path
-from tokenize import Single
 
-import pytest
-from analyze.loader import SingleDeviceData, SingleFileData
 import polars as pl
+import pytest
+
 from analyze.data import _logger
+from analyze.loader import SingleDeviceData, SingleFileData
 
 _logger.setLevel(logging.DEBUG)
 
@@ -134,7 +134,7 @@ def test_find_duplicate_files_three_overlapping_short():
 
 def assert_no_duplicates(files: list[SingleFileData]):
     actual = single_device_data(files).find_duplicate_files()
-    assert actual == []
+    assert not actual
 
 
 def assert_duplicates(files: list[SingleFileData], expected_duplicates: list[SingleFileData]):

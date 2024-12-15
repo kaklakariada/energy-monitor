@@ -2,11 +2,15 @@ import datetime
 import glob
 from functools import reduce
 from pathlib import Path
-from typing import Any, Generator, Iterable, NamedTuple, Optional
 
 import polars as pl
 
-from analyze.data import DeviceDataSource, MultiDeviceData, SingleDeviceData, SingleFileData
+from analyze.data import (
+    DeviceDataSource,
+    MultiDeviceData,
+    SingleDeviceData,
+    SingleFileData,
+)
 from analyze.logger import POLAR_ANALYZER_LOGGER
 from util import format_local_timestamp
 
