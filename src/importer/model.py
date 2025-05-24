@@ -410,6 +410,9 @@ class SystemStatus(NamedTuple):
     webhook_rev: int
     available_updates: dict[str, Any]
     reset_reason: int
+    last_sync_ts: int
+    ram_min_free: int
+    btrelay_rev: int
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SystemStatus":
