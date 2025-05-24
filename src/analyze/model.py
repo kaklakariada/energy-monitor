@@ -17,7 +17,7 @@ PhaseData = tuple[str, pl.LazyFrame]
 @dataclass(frozen=False)
 class PolarDeviceData:
     _df: pl.LazyFrame
-    _device_data: list[SingleDeviceData]
+    device_data: list[SingleDeviceData]
     _collected: Optional[pl.DataFrame] = None
 
     @classmethod
@@ -27,12 +27,12 @@ class PolarDeviceData:
 
     @property
     def gaps(self) -> Generator[DataGap, None, None]:
-        for device in self._device_data:
+        for device in self.device_data:
             yield from device.find_gaps()
 
     @property
     def statistics(self) -> MultiDeviceStatistics:
-        return MultiDeviceStatistics.create(self._device_data)
+        return MultiDeviceStatistics.create(self.device_data)
 
     @property
     def df(self) -> pl.DataFrame:

@@ -29,6 +29,7 @@ Specify the data age as follows:
 * `1h`: one hour
 * `2d`: two days
 * `3w`: three week
+* `max`: all available data
 
 ### Import CSV Data to InfluxDB
 

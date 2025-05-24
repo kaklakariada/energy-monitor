@@ -12,7 +12,7 @@ _logger = POLAR_ANALYZER_LOGGER.getChild("main")
 
 def main():
     data = PolarDeviceData.load([DeviceDataSource(f.dir, f.device) for f in config.files])
-    for device in data._device_data:
+    for device in data.device_data:
         print(device.find_duplicate_files())
     # df = data.total_energy(every="1mo", group_by=None).collect()
     # print(df)
