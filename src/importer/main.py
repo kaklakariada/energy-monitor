@@ -21,7 +21,7 @@ logger = MAIN_LOGGER.getChild("main")
 
 
 def _configure_logging(
-    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose log output")] = False
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose log output")] = False,
 ) -> None:
     if verbose:
         MAIN_LOGGER.setLevel(logging.DEBUG)

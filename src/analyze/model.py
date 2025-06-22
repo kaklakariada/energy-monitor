@@ -1,4 +1,3 @@
-# type: ignore # Plot arguments are not typed
 import datetime
 from dataclasses import dataclass
 from functools import reduce
@@ -7,13 +6,8 @@ from typing import Generator, Optional
 import polars as pl
 
 from analyze.common import PHASE_COLUMNS, Phase
-from analyze.loader import (
-    DataGap,
-    DeviceDataSource,
-    MultiDeviceStatistics,
-    SingleDeviceData,
-    read_data,
-)
+from analyze.data import DataGap, MultiDeviceStatistics
+from analyze.loader import DeviceDataSource, SingleDeviceData, read_data
 
 _PHASE_TYPE = pl.Enum(["a", "b", "c"])
 _DAY_OF_WEEK = pl.Enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
@@ -23,7 +17,7 @@ PhaseData = tuple[str, pl.LazyFrame]
 @dataclass(frozen=False)
 class PolarDeviceData:
     _df: pl.LazyFrame
-    _device_data: list[SingleDeviceData]
+    device_data: list[SingleDeviceData]
     _collected: Optional[pl.DataFrame] = None
 
     @classmethod
@@ -33,12 +27,12 @@ class PolarDeviceData:
 
     @property
     def gaps(self) -> Generator[DataGap, None, None]:
-        for device in self._device_data:
+        for device in self.device_data:
             yield from device.find_gaps()
 
     @property
     def statistics(self) -> MultiDeviceStatistics:
-        return MultiDeviceStatistics.create(self._device_data)
+        return MultiDeviceStatistics.create(self.device_data)
 
     @property
     def df(self) -> pl.DataFrame:
@@ -96,74 +90,21 @@ class PolarDeviceData:
             index_column="timestamp", every=every, period=None, group_by=group_by, start_by=start_by
         ).agg(pl.sum("total_act_energy"))
         df = df.with_columns(pl.col("timestamp").dt.date().alias("date"))
+        df = df.with_columns(pl.col("total_act_energy").mul(0.001).alias("total_act_energy_kwh"))
+        df = df.drop("total_act_energy")
+        df = df.drop("timestamp")
         return df
 
     def daily_total_energy(self) -> pl.LazyFrame:
         return self.total_energy(every="1d")
 
     def total_energy_by_day_of_week(self) -> pl.LazyFrame:
-        df = self.daily_total_energy().with_columns(pl.col("date").dt.weekday().alias("day_of_week"))
-        df = df.group_by("day_of_week", "device", "phase").agg(pl.col("total_act_energy").mean())
-        df = df.sort("day_of_week").with_columns(
-            pl.col("day_of_week")
+        df = self.daily_total_energy().with_columns(pl.col("date").dt.weekday().alias("day_of_week_num"))
+        df = df.group_by("day_of_week_num", "device", "phase").agg(pl.col("total_act_energy_kwh").mean())
+        df = df.sort("day_of_week_num").with_columns(
+            pl.col("day_of_week_num")
             .replace_strict(list(range(1, 8)), _DAY_OF_WEEK.categories.to_list())
             .cast(dtype=_DAY_OF_WEEK, strict=True)
             .alias("day_of_week")
         )
         return df
-
-    def plot_all(self, column: str):
-        df = self.phase_data
-        return df.collect().plot.line(
-            x="timestamp",
-            y=column,
-            by=["device", "phase"],
-            autorange=None,
-            grid=True,
-            hover=True,
-            responsive=False,
-            title=f"{column} over time for all devices and phases",
-            xlabel="Timestamp",
-            ylabel=column,
-            sort_date=True,
-            downsample=True,
-        )
-
-    def plot(self, column: str, phase: Phase, device: str):
-        df = self.phase_data
-        df = df.filter((pl.col("device").eq(device) & pl.col("phase").eq(phase.value)))
-        return df.collect().plot.line(
-            x="timestamp",
-            y=column,
-            autorange=None,
-            grid=True,
-            hover=True,
-            responsive=False,
-            title=f"{column} over time for device '{device}' and phase {phase.name}",
-            xlabel="Timestamp",
-            ylabel=column,
-            sort_date=True,
-            downsample=True,
-        )
-
-    def plot_total_energy(
-        self, every: str | datetime.timedelta, device: Optional[str] = None, phase: Optional[Phase] = None
-    ):
-        df = self.total_energy(every=every)
-        title = f"Total energy every {every} for each device and phase"
-        if device is not None and phase is not None:
-            df = df.filter((pl.col("device").eq(device) & pl.col("phase").eq(phase.value)))
-            title = f"Total energy every {every} for device '{device}' and phase {phase.name}"
-        return df.collect().plot.bar(
-            x="timestamp",
-            y="total_act_energy",
-            autorange=None,
-            grid=True,
-            hover=True,
-            responsive=False,
-            title=title,
-            xlabel="Timestamp",
-            ylabel="Total energy",
-            sort_date=True,
-            downsample=True,
-        )

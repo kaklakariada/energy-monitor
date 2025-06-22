@@ -9,31 +9,31 @@ packages = [{ include = "importer", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-typer = "^0.12.4"
-influxdb-client = "^1.45.0"
-requests = "^2.32.2"
-websockets = "^13.0"
-pytz = "^2024.1"
-tqdm = "^4.66.4"
-polars = { extras = ["plot"], version = "^1.5.0" }
+typer = "^0.16.0"
+influxdb-client = "^1.49.0"
+requests = "^2.32.4"
+websockets = "^15.0.1"
+pytz = "^2025.2"
+tqdm = "^4.67.1"
+polars = { extras = ["plot"], version = "^1.31.0" }
 
 
 [tool.poetry.group.dev.dependencies]
-types-requests = "^2.32.0.20240523"
-types-tqdm = "^4.66.0.3"
-types-pytz = "^2024.1.0.20240417"
-types-influxdb-client = "^1.45.0.20240814"
-mypy = "^1.11.1"
-black = { version = "^24.8.0", extras = ["jupyter"] }
-nox = "^2024.4.15"
-isort = "^5.12.0"
-pytest = "^8.2.2"
-pylint = "^3.2.5"
-testcontainers = "^4.8.0"
-jupyterlab = "^4.2.5"
-pyarrow = "^17.0.0"                                   # data analysis
-jedi-language-server = "^0.41.4"                      # for jupyter
-pip = "^24.3.1"
+types-requests = "^2.32.4.20250611"
+types-tqdm = "^4.67.0.20241119"
+types-pytz = "^2024.2.0.20241003"
+types-influxdb-client = "^1.45.0.20240915"
+mypy = "^1.16.1"
+black = { version = "^25.1.0", extras = ["jupyter"] }
+nox = "^2025.5.1"
+isort = "^6.0.1"
+pytest = "^8.4.1"
+pylint = "^3.3.7"
+testcontainers = "^4.10.0"
+jupyterlab = "^4.4.3"
+pyarrow = "^20.0.0"                                   # data analysis
+jedi-language-server = "^0.45.1"                      # for jupyter
+pip = "^25.1.1"
 
 
 [build-system]
@@ -45,7 +45,7 @@ main = "importer.main:main"
 
 [tool.black]
 line-length = 120
-target-version = ['py311']
+target-version = ['py312']
 include = '\.pyi?$'
 verbose = false
 

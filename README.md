@@ -1,5 +1,5 @@
 # energy-monitor
-This provides tools for downloading data from Shelly 3EM devices and analysing it.
+This provides tools for downloading data from Shelly 3EM devices and analyzing it.
 
 ## Initial Setup
 
@@ -29,6 +29,7 @@ Specify the data age as follows:
 * `1h`: one hour
 * `2d`: two days
 * `3w`: three week
+* `max`: all available data
 
 ### Import CSV Data to InfluxDB
 
@@ -66,9 +67,27 @@ poetry run nox -s fix
 poetry show --outdated
 ```
 
+Update to latest compatible version:
+
+```sh
+poetry update
+```
+
 ### Run tests
 
 ```sh
 # Show stdout & stderr and enable debug level
 pytest --capture=no -o log_cli=true -o log_cli_level=debug
+```
+
+### Analyze Data Files
+
+```sh
+poetry run nox -s analyze
+```
+
+### Run Jupyter Notebook
+
+```sh
+poetry run nox -s jupyter
 ```

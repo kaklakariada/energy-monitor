@@ -57,4 +57,11 @@ def utest(session: nox.Session) -> None:
 
 @nox.session(name="jupyter", python=False)
 def jupyter(session: Session) -> None:
-    session.run("jupyter", "lab", f"--notebook-dir=.", "--preferred-dir=.")
+    """Run Jupyter Notebook"""
+    session.run("jupyter", "lab", "--notebook-dir=.", "--preferred-dir=.")
+
+
+@nox.session(name="analyze", python=False)
+def analyze(session: Session) -> None:
+    """Analyze all data files"""
+    session.run("python", "src/analyze/main.py")
