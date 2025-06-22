@@ -41,7 +41,7 @@ def read_csv_dir(data: DeviceDataSource) -> SingleDeviceData:
 def read_csv_files(files: list[Path], device: str) -> SingleDeviceData:
     if not files:
         raise ValueError("No input files")
-    _logger.info(f"Reading {len(files)} files for device {device}...")
+    _logger.info(f"Reading {len(files)} files for device '{device}'...")
 
     def merge(a: pl.DataFrame, b: pl.DataFrame) -> pl.DataFrame:
         df = a.vstack(other=b, in_place=False)
