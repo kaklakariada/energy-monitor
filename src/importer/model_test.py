@@ -1,7 +1,7 @@
 import csv
 import math
 
-from importer.model import CsvRow, NotifyStatusEvent, Phase
+from importer.model import CsvRow, DeviceInfo, NotifyStatusEvent, Phase, SystemStatus
 
 
 def test_parse_event():
@@ -12,7 +12,6 @@ def test_parse_event():
         "params": {
             "ts": 1716560784.74,
             "em:0": {
-                "id": 0,
                 "a_act_power": 10.5,
                 "a_aprt_power": 19.4,
                 "a_current": 0.083,
@@ -48,6 +47,59 @@ def test_parse_event():
     assert math.isclose(event.status.phases[0].act_power, 10.5)
     assert event.status.n_current is None
     assert math.isclose(event.status.total_act_power, 20.641)
+
+
+def test_parse_device_info_with_new_fields():
+    data = {
+        "name": "device",
+        "id": "shellypro3em-123",
+        "mac": "AA:BB:CC:DD:EE:FF",
+        "slot": 0,
+        "key": "",
+        "batch": "",
+        "fw_sbits": "",
+        "model": "SPEM-003CEBEU",
+        "gen": 2,
+        "fw_id": "",
+        "ver": "2.1.1",
+        "app": "Pro3EM",
+        "auth_en": False,
+        "auth_domain": None,
+        "profile": "triphase",
+        "provision": "complete",
+    }
+
+    device_info = DeviceInfo.from_dict(data)
+    assert device_info.id == "shellypro3em-123"
+    assert device_info.provision == "complete"
+
+
+def test_parse_system_status_with_new_fields():
+    data = {
+        "mac": "AA:BB:CC:DD:EE:FF",
+        "restart_required": False,
+        "time": "12:00",
+        "unixtime": 1716560784,
+        "uptime": 100,
+        "ram_size": 1000,
+        "ram_free": 500,
+        "fs_size": 1000,
+        "fs_free": 500,
+        "cfg_rev": 1,
+        "kvs_rev": 1,
+        "schedule_rev": 1,
+        "webhook_rev": 1,
+        "available_updates": {},
+        "reset_reason": 0,
+        "last_sync_ts": 0,
+        "ram_min_free": 100,
+        "btrelay_rev": 0,
+        "utc_offset": 3600,
+    }
+
+    system_status = SystemStatus.from_dict(data)
+    assert system_status.unixtime == 1716560784
+    assert system_status.utc_offset == 3600
 
 
 def test_parse_csv_row():
