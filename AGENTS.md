@@ -22,6 +22,6 @@ Each phase column is prefixed by its phase letter and an underscore (for example
 ## Source code overview
 
 - `src/importer/` communicates with the Shelly energy meters. Its CLI downloads CSV exports, subscribes to live status updates, and imports CSV or live readings into InfluxDB. `src/importer/db/` converts readings to InfluxDB points and handles database writes.
-- `src/analyze/` reads per-device CSV directories, combines files, removes duplicate timestamps, reports coverage and gaps, and provides Polars-based phase and energy summaries (including daily totals and weekday averages).
+- `src/analyze/` reads per-device CSV directories, combines files, removes duplicate timestamps, reports candidates for redundant CSV files without deleting them, warns about missing time ranges, and provides Polars-based phase and energy summaries (including daily totals and weekday averages).
 - `src/config.py` loads the project configuration; `src/example_config.py` shows its expected shape. `src/util.py` contains timezone-aware timestamp formatting. Tests are colocated in `*_test.py` files.
 - The CSV downloader writes into the configured data directory and also creates compressed backups there. Never run it or any other operation that writes to `data/`; raw data must remain unchanged.
