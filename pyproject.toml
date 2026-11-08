@@ -28,7 +28,7 @@ black = { version = "^25.12.0", extras = ["jupyter"] }
 nox = "^2025.11.12"
 isort = "^6.1.0"
 pytest = "^8.4.2"
-pylint = "^3.3.9"
+pylint = "^4.0.9"
 testcontainers = "^4.15.0"
 jupyterlab = "^4.6.4"
 pyarrow = "^26.0.0"                                   # data analysis
