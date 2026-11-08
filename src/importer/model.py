@@ -198,6 +198,7 @@ class DeviceInfo(NamedTuple):
     auth_en: bool
     auth_domain: Optional[str]
     profile: str
+    provision: Optional[str] = None
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "DeviceInfo":
@@ -291,6 +292,8 @@ class EnergyMeterStatusRaw(NamedTuple):
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "EnergyMeterStatusRaw":
+        data = dict(data)
+        data.setdefault("id", 0)
         for error_field in ["a_errors", "b_errors", "c_errors", "n_errors", "errors"]:
             if error_field not in data:
                 data[error_field] = []
@@ -413,6 +416,7 @@ class SystemStatus(NamedTuple):
     last_sync_ts: int
     ram_min_free: int
     btrelay_rev: int
+    utc_offset: Optional[int] = None
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SystemStatus":
