@@ -33,7 +33,7 @@ testcontainers = "^4.15.0"
 jupyterlab = "^4.6.4"
 pyarrow = "^26.0.0"                                   # data analysis
 jedi-language-server = "^0.45.1"                      # for jupyter
-pip = "^25.3"
+pip = "^26.2"
 
 
 [build-system]
